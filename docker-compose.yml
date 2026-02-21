@@ -1,0 +1,57 @@
+version: "3.9"
+
+services:
+  # 1. PostgreSQL Database
+  db:
+    image: postgres:15
+    restart: always
+    env_file:
+      - backend_core/.env
+    environment:
+      POSTGRES_DB: ${DB_NAME:-hairways_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # 2. Django Backend Core
+  backend:
+    build: ./backend_core
+    command: >
+      sh -c "python manage.py makemigrations &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend_core:/app
+    ports:
+      - "8000:8000" # Exposing on 8000 directly for local dev testing if needed
+    env_file:
+      - backend_core/.env
+    environment:
+      - DB_HOST=db
+    depends_on:
+      - db
+
+  # 3. FastAPI AI Engine
+  ai_engine:
+    build: ./ai_engine
+    volumes:
+      - ./ai_engine:/app
+    ports:
+      - "8001:8001" # Exposing directly for local dev testing if needed
+    depends_on:
+      - db
+
+  # 4. Nginx API Gateway
+  api_gateway:
+    build: ./api_gateway
+    ports:
+      - "80:80" # The main entrypoint for the frontend
+    depends_on:
+      - backend
+      - ai_engine
+
+volumes:
+  pgdata:

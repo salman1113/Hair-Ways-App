@@ -1,0 +1,1 @@
+docker compose --env-file backend_core/.env up -d
