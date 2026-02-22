@@ -1,7 +1,8 @@
 import React from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Users, Scissors, LogOut, Package, LayoutDashboard, Receipt  } from 'lucide-react';
+import { Users, Scissors, LogOut, Package, LayoutDashboard, Receipt } from 'lucide-react';
+import AdminChatDrawer from './AdminChatDrawer';
 
 const AdminLayout = () => {
   const { logout } = useAuth();
@@ -40,9 +41,11 @@ const AdminLayout = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 p-4 md:p-10 overflow-y-auto">
+      <div className="flex-1 p-4 md:p-10 overflow-y-auto w-full relative">
         <Outlet /> {/* Child pages will appear here */}
       </div>
+
+      <AdminChatDrawer />
     </div>
   );
 };

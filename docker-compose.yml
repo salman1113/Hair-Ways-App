@@ -41,6 +41,10 @@ services:
       - ./ai_engine:/app
     ports:
       - "8001:8001" # Exposing directly for local dev testing if needed
+    env_file:
+      - backend_core/.env
+    environment:
+      - DB_HOST=db
     depends_on:
       - db
 

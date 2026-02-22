@@ -285,4 +285,20 @@ export const analyzeFaceShape = async (imageFile) => {
   return response.data;
 };
 
+export const chatCustomerAI = async (query) => {
+  const API_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/v1', '') : 'http://localhost/api';
+  const response = await axios.post(`${API_BASE}/ai/chat/customer`, { query }, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+  return response.data;
+};
+
+export const chatAdminAI = async (query) => {
+  const API_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/v1', '') : 'http://localhost/api';
+  const response = await axios.post(`${API_BASE}/ai/chat/admin`, { query }, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+  return response.data;
+};
+
 export default api;

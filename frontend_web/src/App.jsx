@@ -7,6 +7,7 @@ import IntroScreen from './components/IntroScreen';
 import Loader from './components/Loader';
 import Navbar from './components/Navbar';
 import AdminLayout from './components/AdminLayout'; // 🔥 New Layout
+import CustomerChatWidget from './components/CustomerChatWidget';
 
 // Pages - Public
 import HomePage from './pages/HomePage';
@@ -86,6 +87,7 @@ const AppContent = () => {
       <Toaster position="top-right" toastOptions={{ className: 'z-[9999]', duration: 4000 }} />
       {pageLoading && <Loader />}
       {!isDashboard && <Navbar />}
+      {!isDashboard && <CustomerChatWidget />}
 
       {/* ... rest of the code ... */}
 
