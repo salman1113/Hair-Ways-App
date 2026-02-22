@@ -21,6 +21,7 @@ import ReviewsPage from './pages/ReviewsPage'; // 🔥 New Reviews Page
 import NotFoundPage from './pages/NotFoundPage'; // 🔥 New 404 Page
 import SignupPage from './pages/SignupPage';
 import OTPVerificationPage from './pages/OTPVerificationPage';
+import AiStylistPage from "./pages/AiStylistPage";
 
 // Pages - Customer
 import BookingPage from './pages/BookingPage';
@@ -98,6 +99,7 @@ const AppContent = () => {
           <Route path="/admin/verify" element={<OTPVerificationPage />} />
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/services/:id" element={<ServiceDetails />} />
+          <Route path="/ai-stylist" element={<AiStylistPage />} /> {/* 🔥 AI Stylist Route */}
           <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/reviews" element={<ReviewsPage />} /> {/* 🔥 Reviews Route */}
           <Route path="/about" element={<AboutPage />} />

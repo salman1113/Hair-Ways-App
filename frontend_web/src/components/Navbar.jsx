@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Scissors, User, ChevronDown } from 'lucide-react';
+import { Menu, X, Scissors, User, ChevronDown, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -167,6 +167,7 @@ const Navbar = () => {
               </AnimatePresence>
             </div>
 
+            <NavLink to="/ai-stylist">AI Stylist <Sparkles size={14} className="inline mb-1 text-[#C19D6C] animate-pulse" /></NavLink>
             <NavLink to="/about">About</NavLink>
             <NavLink to="/services">Services</NavLink>
 
@@ -249,10 +250,7 @@ const Navbar = () => {
               </motion.div>
 
               <motion.div variants={mobileItemVariants}>
-                <Link to="/about" className="block text-lg font-medium hover:text-[#C19D6C] transition-colors">About</Link>
-              </motion.div>
-              <motion.div variants={mobileItemVariants}>
-                <Link to="/services" className="block text-lg font-medium hover:text-[#C19D6C] transition-colors">Services</Link>
+                <Link to="/ai-stylist" className="block text-lg font-medium hover:text-[#C19D6C] transition-colors">AI Stylist <Sparkles size={14} className="inline mb-1 text-[#C19D6C] animate-pulse" /></Link>
               </motion.div>
 
               {user ? (
