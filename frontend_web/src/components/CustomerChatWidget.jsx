@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquare, X, Send, Bot, User, Loader2 } from 'lucide-react';
 import { chatCustomerAI } from '../services/api';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const CustomerChatWidget = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -93,8 +95,28 @@ const CustomerChatWidget = () => {
                                             ? 'bg-zinc-800 border border-white/5 text-zinc-200 rounded-tl-sm shadow-md'
                                             : 'bg-yellow-500 text-zinc-950 font-medium rounded-br-sm shadow-md shadow-yellow-500/20'
                                             }`}
+                                        style={!msg.isBot ? { whiteSpace: 'pre-wrap' } : {}}
                                     >
-                                        {msg.text}
+                                        {msg.isBot ? (
+                                            <ReactMarkdown
+                                                remarkPlugins={[remarkGfm]}
+                                                components={{
+                                                    p: ({ node, ...props }) => <p className="mb-2 last:mb-0" {...props} />,
+                                                    ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-2 space-y-1 marker:text-gold" {...props} />,
+                                                    ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-2 space-y-1 marker:text-gold" {...props} />,
+                                                    li: ({ node, ...props }) => <li className="pl-1" {...props} />,
+                                                    strong: ({ node, ...props }) => <strong className="font-bold text-white" {...props} />,
+                                                    h1: ({ node, ...props }) => <h1 className="text-lg font-bold text-white mt-4 mb-2 first:mt-0" {...props} />,
+                                                    h2: ({ node, ...props }) => <h2 className="text-base font-bold text-white mt-3 mb-2 first:mt-0" {...props} />,
+                                                    h3: ({ node, ...props }) => <h3 className="text-sm font-bold text-white mt-2 mb-1 first:mt-0" {...props} />,
+                                                    a: ({ node, ...props }) => <a className="text-gold hover:underline" {...props} />,
+                                                }}
+                                            >
+                                                {msg.text}
+                                            </ReactMarkdown>
+                                        ) : (
+                                            msg.text
+                                        )}
                                     </div>
                                 </div>
                             </div>
