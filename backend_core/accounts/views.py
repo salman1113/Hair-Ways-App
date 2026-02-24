@@ -292,12 +292,17 @@ class EmployeeListCreateApi(APIView):
         serializer = EmployeeProfileSerializer(queryset, many=True)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        request_body=EmployeeCreationSerializer(many=True),
+        responses={201: EmployeeProfileSerializer(many=True)}
+    )
     def post(self, request):
-        """Admin creates employee (User + Profile)"""
+        """Admin creates employee(s) (User + Profile). Send a single object, or a JSON array of objects for bulk creation."""
         if request.user.role != 'ADMIN':
              return Response({"error": "Admin only"}, status=403)
              
-        serializer = EmployeeCreationSerializer(data=request.data)
+        is_many = isinstance(request.data, list)
+        serializer = EmployeeCreationSerializer(data=request.data, many=is_many)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)

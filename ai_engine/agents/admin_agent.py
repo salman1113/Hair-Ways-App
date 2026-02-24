@@ -1,5 +1,5 @@
 import os
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
 from langchain_community.utilities import SQLDatabase
 from langchain_community.agent_toolkits import create_sql_agent
 
@@ -17,14 +17,12 @@ def get_admin_agent():
     # Connect to the database
     db = SQLDatabase.from_uri(db_uri)
 
-    # Initialize Gemini LLM
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        raise ValueError("GOOGLE_API_KEY environment variable is missing.")
+    # Initialize Groq LLM
+    api_key = os.getenv("GROQ_API_KEY")
         
-    llm = ChatGoogleGenerativeAI(
-        model="gemini-flash-latest",
-        google_api_key=api_key,
+    llm = ChatGroq(
+        model="llama-3.3-70b-versatile",
+        api_key=api_key,
         temperature=0
     )
 
@@ -50,10 +48,10 @@ def ask_admin_agent(query: str) -> str:
         "Your job is to answer the admin's questions by querying the PostgreSQL database intelligently. "
         "CRITICAL RULES:\n"
         "1. NEVER execute DML commands (INSERT, UPDATE, DELETE, DROP). Only use SELECT.\n"
-        "2. Analyze the database schema carefully under the hood, but NEVER expose raw database schema, table names, or internal data structures to the user.\n"
-        "3. Always frame your responses in professional business terms (e.g., 'Total Revenue', 'Upcoming Bookings') rather than database jargon.\n"
-        "4. If the user greets you (e.g., 'hello', 'hi'), reply EXACTLY with: 'Hello! I am your Data Insights AI. I can help you analyze revenue, bookings, and staff performance. What would you like to know?' Do not query the database for a greeting.\n"
-        "5. Provide clear, concise answers based explicitly on the calculated real business data from SQL query results.\n\n"
+        "2. Mandatory JOINs: You must NEVER output raw database IDs (e.g., 'employee ID 9', 'customer ID 2') for foreign keys in your final answer. You must ALWAYS write SQL queries using JOIN clauses to fetch the actual, human-readable names (e.g., join the booking table with the employee/customer tables to get their exact names, and the service table for the service name).\n"
+        "3. Business Formatting: The final output must read like a natural, professional business report for a salon owner (e.g., 'There is 1 booking today at 6:00 PM for John Doe, assigned to stylist Jane Smith.').\n"
+        "4. Analyze the database schema carefully under the hood, but NEVER expose raw database schema, table names, or internal data structures to the user.\n"
+        "5. If the user greets you (e.g., 'hello', 'hi'), reply EXACTLY with: 'Hello! I am your Data Insights AI. I can help you analyze revenue, bookings, and staff performance. What would you like to know?' Do not query the database for a greeting.\n\n"
         f"Admin Question: {query}"
     )
     

@@ -6,7 +6,9 @@ python-multipart>=0.0.9
 opencv-python-headless==4.9.0.80
 mediapipe==0.10.9
 langchain>=0.3.0
-langchain-google-genai>=2.0.0
+langchain-groq
+langchain-huggingface
+sentence-transformers
 langchain-community>=0.3.0
 faiss-cpu
 psycopg2-binary

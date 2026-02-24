@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Star, Phone, ArrowRight, Scissors, CheckCircle, Calendar, User, MapPin, Instagram, Facebook, Twitter, Minus, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -35,6 +35,31 @@ const HomePage = () => {
   });
 
   const yBg = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
+
+  const [services, setServices] = useState([]);
+  const [team, setTeam] = useState([]);
+
+  useEffect(() => {
+    const fetchHomeData = async () => {
+      try {
+        const [servicesRes, teamRes] = await Promise.all([
+          fetch('http://localhost:8000/api/v1/services/services/'),
+          fetch('http://localhost:8000/api/v1/accounts/employees/')
+        ]);
+        if (servicesRes.ok) {
+          const sData = await servicesRes.json();
+          setServices(sData.slice(0, 4));
+        }
+        if (teamRes.ok) {
+          const tData = await teamRes.json();
+          setTeam(tData.slice(0, 4));
+        }
+      } catch (err) {
+        console.error("Error fetching homepage data:", err);
+      }
+    };
+    fetchHomeData();
+  }, []);
 
   return (
     <div className="font-sans text-[#1A1A1A] antialiased bg-white selection:bg-[#C19D6C] selection:text-white overflow-x-hidden">
@@ -191,24 +216,25 @@ const HomePage = () => {
             <motion.h2 variants={fadeInUp} className="text-4xl md:text-5xl font-bold text-black mb-8">A pure range of luxury salon services.</motion.h2>
 
             <div className="space-y-4">
-              {[
-                { title: "Hair Wash & Treatment", desc: "Refreshing wash and care for stronger, healthy hair." },
-                { title: "Modern Styling", desc: "Trendy cuts tailored perfectly to match your style." },
-                { title: "Hot Towel Shaves", desc: "Relax with smooth, classic shaves every single time." },
-                { title: "Beard Trimming", desc: "Sharp, clean trims for a polished, bold look." }
-              ].map((service, index) => (
-                <motion.div
-                  key={index}
-                  variants={fadeInUp}
-                  className="group p-6 bg-white rounded-2xl hover:shadow-xl transition border border-gray-100 cursor-pointer hover:border-[#C19D6C]/30"
-                >
-                  <h3 className="text-xl font-bold text-black group-hover:text-[#C19D6C] transition flex justify-between items-center">
-                    {service.title}
-                    <ArrowRight size={18} className="opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition text-[#C19D6C]" />
-                  </h3>
-                  <p className="text-gray-500 mt-2 text-sm group-hover:text-gray-600 transition">{service.desc}</p>
-                </motion.div>
-              ))}
+              {services.length === 0 ? (
+                <p className="text-gray-500">No services available right now.</p>
+              ) : (
+                services.map((service) => (
+                  <motion.div
+                    key={service.id}
+                    variants={fadeInUp}
+                    className="group p-6 bg-white rounded-2xl hover:shadow-xl transition border border-gray-100 cursor-pointer hover:border-[#C19D6C]/30"
+                  >
+                    <Link to={`/services/${service.id}`} className="block w-full h-full">
+                      <h3 className="text-xl font-bold text-black group-hover:text-[#C19D6C] transition flex justify-between items-center">
+                        {service.name}
+                        <ArrowRight size={18} className="opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition text-[#C19D6C]" />
+                      </h3>
+                      <p className="text-gray-500 mt-2 text-sm group-hover:text-gray-600 transition truncate">{service.description || "Premium styling service."}</p>
+                    </Link>
+                  </motion.div>
+                ))
+              )}
             </div>
 
             <motion.div variants={fadeInUp} className="mt-8">
@@ -239,91 +265,19 @@ const HomePage = () => {
             {/* User Pill */}
             <div className="inline-flex items-center gap-4 bg-[#F5F5F5] pr-6 pl-2 py-2 rounded-full mb-8">
               <div className="flex -space-x-3">
-                <img src="https://randomuser.me/api/portraits/men/32.jpg" className="w-10 h-10 rounded-full border-2 border-white object-cover" alt="User" />
+                <div className="w-10 h-10 rounded-full border-2 border-white bg-gray-500"></div>
               </div>
               <div className="text-left">
-                <p className="font-bold text-sm text-black leading-none">Michael</p>
-                <p className="text-[10px] text-[#C19D6C] font-bold uppercase tracking-widest">VIP Guest</p>
-              </div>
-              <div className="flex -space-x-2 ml-2 opacity-50 grayscale scale-75">
-                <img src="https://randomuser.me/api/portraits/men/44.jpg" className="w-8 h-8 rounded-full border-2 border-white" />
-                <img src="https://randomuser.me/api/portraits/women/44.jpg" className="w-8 h-8 rounded-full border-2 border-white" />
+                <p className="font-bold text-sm text-black leading-none">VIP Clients</p>
+                <p className="text-[10px] text-[#C19D6C] font-bold uppercase tracking-widest">Hair Ways</p>
               </div>
             </div>
           </motion.div>
         </div>
 
-        {/* Masonry Gallery Grid */}
-        <div className="max-w-7xl mx-auto px-6 mt-16">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-8">
-
-            {/* Column 1 */}
-            <div className="flex flex-col gap-4 md:gap-8 translate-y-8 md:translate-y-0">
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8 }}
-                className="rounded-3xl overflow-hidden h-64 md:h-80"
-              >
-                <img src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?q=80&w=2074&auto=format&fit=crop" className="w-full h-full object-cover hover:scale-110 transition duration-700" alt="Gallery 1" />
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                className="rounded-3xl overflow-hidden h-64 md:h-80"
-              >
-                <img src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=2070&auto=format&fit=crop" className="w-full h-full object-cover hover:scale-110 transition duration-700" alt="Gallery 2" />
-              </motion.div>
-            </div>
-
-            {/* Column 2 (Center) */}
-            <div className="flex flex-col gap-4 md:gap-8">
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: 0.1 }}
-                className="rounded-3xl overflow-hidden h-[400px] md:h-[500px]"
-              >
-                <img src="https://images.unsplash.com/photo-1622286342621-4bd786c2447c?q=80&w=2070&auto=format&fit=crop" className="w-full h-full object-cover hover:scale-110 transition duration-700" alt="Gallery 3" />
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: 0.3 }}
-                className="rounded-3xl overflow-hidden h-48 md:h-60"
-              >
-                <img src="https://images.unsplash.com/photo-1599351431202-1e0f0137899a?q=80&w=1888&auto=format&fit=crop" className="w-full h-full object-cover hover:scale-110 transition duration-700" alt="Gallery 4" />
-              </motion.div>
-            </div>
-
-            {/* Column 3 */}
-            <div className="flex flex-col gap-4 md:gap-8 translate-y-8 md:translate-y-12">
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                className="rounded-3xl overflow-hidden h-56 md:h-64"
-              >
-                <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1887&auto=format&fit=crop" className="w-full h-full object-cover hover:scale-110 transition duration-700" alt="Gallery 5" />
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: 0.4 }}
-                className="rounded-3xl overflow-hidden h-72 md:h-96"
-              >
-                <img src="https://images.unsplash.com/photo-1622286342621-4bd786c2447c?q=80&w=2070&auto=format&fit=crop" className="w-full h-full object-cover hover:scale-110 transition duration-700" alt="Gallery 6" />
-              </motion.div>
-            </div>
-
-          </div>
+        {/* Masonry Gallery Grid Empty */}
+        <div className="max-w-7xl mx-auto px-6 mt-16 text-center text-gray-400">
+          <p className="text-sm tracking-widest uppercase">Live Gallery Feed (Currently empty, integrate with API)</p>
         </div>
       </section>
 
@@ -373,21 +327,22 @@ const HomePage = () => {
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"
           >
-            {[
-              { name: "Damian R. Cole", role: "Hair Colorist", img: "https://images.unsplash.com/photo-1566492031773-4f4e44671857?q=80&w=1887&auto=format&fit=crop" },
-              { name: "Nathan Parker", role: "Grooming Expert", img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?q=80&w=1887&auto=format&fit=crop" },
-              { name: "Emilio Harper", role: "Bridal Stylist", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=1887&auto=format&fit=crop" },
-              { name: "Adrian Fulton", role: "Senior Stylist", img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=1887&auto=format&fit=crop" }
-            ].map((member, idx) => (
-              <motion.div key={idx} variants={fadeInUp} className="group cursor-pointer">
-                <div className="relative overflow-hidden rounded-2xl mb-4 aspect-[3/4]">
-                  <img src={member.img} className="w-full h-full object-cover group-hover:scale-110 transition duration-500 grayscale group-hover:grayscale-0" alt={member.name} />
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition"></div>
-                </div>
-                <h3 className="font-bold text-lg">{member.name}</h3>
-                <p className="text-sm text-gray-500 font-bold uppercase tracking-wider">{member.role}</p>
-              </motion.div>
-            ))}
+            {team.length === 0 ? (
+              <p className="text-gray-500 col-span-4 text-center">No stylists available right now.</p>
+            ) : (
+              team.map((member) => (
+                <motion.div key={member.id} variants={fadeInUp} className="group cursor-pointer">
+                  <Link to={`/team/${member.id}`}>
+                    <div className="relative overflow-hidden rounded-2xl mb-4 aspect-[3/4] bg-gray-100">
+                      <img src={member.user_details?.profile_picture || ""} className="w-full h-full object-cover group-hover:scale-110 transition duration-500 grayscale group-hover:grayscale-0" alt={member.username} />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition"></div>
+                    </div>
+                    <h3 className="font-bold text-lg">{member.username}</h3>
+                    <p className="text-sm text-gray-500 font-bold uppercase tracking-wider">{member.job_title || "Stylist"}</p>
+                  </Link>
+                </motion.div>
+              ))
+            )}
           </motion.div>
         </div>
       </section>
@@ -408,25 +363,7 @@ const HomePage = () => {
             initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8"
           >
-            {[
-              { title: "Everyday Haircare Routine...", date: "Feb 06, 2026", img: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?q=80&w=1000&auto=format&fit=crop" },
-              { title: "The Power of a Great Haircut...", date: "Feb 01, 2026", img: "https://images.unsplash.com/photo-1503951914875-befbb7470d03?q=80&w=1000&auto=format&fit=crop" },
-              { title: "Refresh Your Style: Haircare Tips...", date: "Jan 28, 2026", img: "https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=1000&auto=format&fit=crop" },
-              { title: "Top Salon Trends You Need to Know", date: "Jan 15, 2026", img: "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?q=80&w=1000&auto=format&fit=crop" }
-            ].map((post, i) => (
-              <motion.div key={i} variants={fadeInUp} className="bg-white p-4 rounded-3xl flex items-center gap-6 hover:shadow-xl transition group cursor-pointer">
-                <div className="w-32 h-32 rounded-2xl overflow-hidden flex-shrink-0">
-                  <img src={post.img} className="w-full h-full object-cover group-hover:scale-110 transition duration-500" alt="Blog" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 text-xs text-gray-400 mb-2 uppercase font-bold tracking-wider">
-                    <Calendar size={12} /> {post.date}
-                  </div>
-                  <h3 className="font-bold text-xl group-hover:text-[#C19D6C] transition">{post.title}</h3>
-                  <p className="text-sm text-gray-500 mt-2 line-clamp-2">Discover the secrets to maintaining your perfect look every single day with our expert tips...</p>
-                </div>
-              </motion.div>
-            ))}
+            <p className="text-gray-500 col-span-2 text-center py-12">No blog posts available.</p>
           </motion.div>
         </div>
       </section>

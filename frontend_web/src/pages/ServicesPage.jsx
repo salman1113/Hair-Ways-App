@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Scissors, CheckCircle, ArrowRight, Plus, Minus,
@@ -29,8 +29,35 @@ const ServicesPage = () => {
   // FAQ State
   const [activeFaq, setActiveFaq] = useState(null);
 
+  // API Data State
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(3);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/v1/services/services/');
+        if (!response.ok) throw new Error('Failed to fetch services');
+        const data = await response.json();
+        setServices(data);
+        setLoading(false);
+      } catch (err) {
+        console.error("Error fetching services:", err);
+        setError(err.message);
+        setLoading(false);
+      }
+    };
+    fetchServices();
+  }, []);
+
   const toggleFaq = (index) => {
     setActiveFaq(activeFaq === index ? null : index);
+  };
+
+  const loadMore = () => {
+    setVisibleCount(prev => Math.min(prev + 8, services.length));
   };
 
   return (
@@ -64,7 +91,7 @@ const ServicesPage = () => {
 
           {/* Left: Sticky Image */}
           <div className="relative hidden lg:block h-fit sticky top-32">
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/5]">
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl aspect-[4/5] bg-gray-100">
               <img src="https://framerusercontent.com/images/reolu9KILYIFUr85jvwV43hcW8.png?width=1200&height=1600" className="w-full h-full object-cover" />
 
               {/* Floating Badge */}
@@ -76,39 +103,63 @@ const ServicesPage = () => {
           </div>
 
           {/* Right: Service List */}
-          <motion.div
-            initial="hidden" whileInView="visible" viewport={{ once: true }} variants={staggerContainer}
-            className="space-y-4"
-          >
-            <motion.div variants={fadeInUp} className="mb-8">
+          <div className="space-y-4">
+            <motion.div variants={fadeInUp} initial="hidden" animate="visible" className="mb-8">
               <span className="text-[#C19D6C] font-bold uppercase tracking-widest text-xs mb-2 block">Our Expertise</span>
               <h2 className="text-4xl font-bold">A pure range of luxury <br />salon services</h2>
             </motion.div>
 
-            {[
-              { title: "Hair Wash & Treatment", desc: "Refreshing wash and care for stronger, healthy hair.", price: "$25" },
-              { title: "Modern Styling", desc: "Trendy cuts tailored perfectly to match your style.", price: "$40" },
-              { title: "Hot Towel Shaves", desc: "Relax with smooth, classic shaves every single time.", price: "$30" },
-              { title: "Beard Trimming", desc: "Sharp, clean trims for a polished, bold look.", price: "$20" },
-              { title: "Classic Haircuts", desc: "Classic barbering redefined with precision and confidence.", price: "$35" },
-              { title: "Facial & Massage", desc: "Rejuvenating facial treatments for glowing skin.", price: "$50" }
-            ].map((service, index) => (
-              <motion.div
-                key={index}
-                variants={fadeInUp}
-                className="group p-8 bg-[#FAFAFA] rounded-2xl hover:bg-[#0B0B0B] hover:text-white transition-all duration-500 cursor-pointer border border-gray-100 hover:border-[#0B0B0B]"
-              >
-                <Link to={`/services/${index + 1}`} className="block w-full h-full">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-xl font-bold group-hover:text-[#C19D6C] transition-colors">{service.title}</h3>
-                    <ArrowRight className="opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition-all duration-500 text-[#C19D6C]" />
+            {loading ? (
+              <div className="text-gray-500 py-4">Loading services...</div>
+            ) : error ? (
+              <div className="text-red-500 py-4">Failed to load services.</div>
+            ) : services.length === 0 ? (
+              <div className="text-gray-500 py-4">No services available.</div>
+            ) : (
+              <>
+                {services.slice(0, visibleCount).map((service, index) => (
+                  <motion.div
+                    key={service.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: (index % 8) * 0.05 }}
+                    className="group p-8 bg-[#FAFAFA] rounded-2xl hover:bg-[#0B0B0B] hover:text-white transition-all duration-500 cursor-pointer border border-gray-100 hover:border-[#0B0B0B]"
+                  >
+                    <Link to={`/services/${service.id}`} className="block w-full h-full">
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-xl font-bold group-hover:text-[#C19D6C] transition-colors">{service.name}</h3>
+                        <div className="flex items-center gap-4">
+                          <span className="font-bold text-lg">₹{service.price}</span>
+                          <ArrowRight className="opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition-all duration-500 text-[#C19D6C]" />
+                        </div>
+                      </div>
+                      <p className="text-gray-500 text-sm group-hover:text-gray-400 transition-colors mb-4">{service.description || "Premium salon service from Hair Ways."}</p>
+
+                      {/* Tags */}
+                      <div className="flex items-center gap-3 mt-4 text-xs font-bold tracking-widest uppercase opacity-70">
+                        {service.category_name && <span className="bg-[#C19D6C]/10 text-[#C19D6C] px-3 py-1 rounded-full">{service.category_name}</span>}
+                        <span><Clock size={12} className="inline mr-1" /> {service.duration_minutes} MINS</span>
+                      </div>
+
+                      <div className="w-full h-[1px] bg-gray-200 group-hover:bg-white/10 transition-colors mt-6"></div>
+                    </Link>
+                  </motion.div>
+                ))}
+
+                {/* Load More Button */}
+                {visibleCount < services.length && (
+                  <div className="pt-8 text-center">
+                    <button
+                      onClick={loadMore}
+                      className="px-8 py-3 border-2 border-[#1A1A1A] text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-white font-bold rounded-full transition duration-300 shadow-md hover:shadow-xl"
+                    >
+                      Show More Services
+                    </button>
                   </div>
-                  <p className="text-gray-500 text-sm group-hover:text-gray-400 transition-colors mb-4">{service.desc}</p>
-                  <div className="w-full h-[1px] bg-gray-200 group-hover:bg-white/10 transition-colors"></div>
-                </Link>
-              </motion.div>
-            ))}
-          </motion.div>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </section>
 

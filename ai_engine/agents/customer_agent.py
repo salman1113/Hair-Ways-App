@@ -1,85 +1,78 @@
 import os
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-from langchain_community.document_loaders import TextLoader
-from langchain_community.vectorstores import FAISS
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_classic.chains import create_retrieval_chain
-from langchain_classic.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_groq import ChatGroq
+from langchain_community.utilities import SQLDatabase
+from langchain_community.agent_toolkits import create_sql_agent
 
 KNOWLEDGE_PATH = "/app/data/salon_knowledge.txt"
-FAISS_INDEX_PATH = "/app/data/faiss_index"
 
-def init_vector_db():
-    """Initializes the FAISS vector database by reading the salon knowledge text file."""
-    api_key = os.getenv("GOOGLE_API_KEY")
-    if not api_key:
-        raise ValueError("GOOGLE_API_KEY environment variable is missing.")
-
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001", google_api_key=api_key)
-
-    # If the index already exists, load it directly
-    if os.path.exists(FAISS_INDEX_PATH):
-        return FAISS.load_local(FAISS_INDEX_PATH, embeddings, allow_dangerous_deserialization=True)
-
-    # 1. Load the document
-    if not os.path.exists(KNOWLEDGE_PATH):
-        raise FileNotFoundError(f"Knowledge document not found at {KNOWLEDGE_PATH}")
-        
-    loader = TextLoader(KNOWLEDGE_PATH)
-    docs = loader.load()
-
-    # 2. Split the document into intelligent chunks
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-    splits = text_splitter.split_documents(docs)
-
-    # 3. Create FAISS VectorDB and Store
-    vectorstore = FAISS.from_documents(splits, embeddings)
-    
-    # Ensure directory exists before saving
-    os.makedirs(os.path.dirname(FAISS_INDEX_PATH), exist_ok=True)
-    vectorstore.save_local(FAISS_INDEX_PATH)
-    
-    return vectorstore
-
-def get_customer_qa_chain():
-    """Creates the LangChain Retrieval Chain for Customer Queries"""
-    # Initialize DB (creates it if it doesn't exist)
-    vectorstore = init_vector_db()
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
-
-    # Initialize Gemini
-    llm = ChatGoogleGenerativeAI(
-        model="gemini-flash-latest",
-        google_api_key=os.getenv("GOOGLE_API_KEY"),
-        temperature=0.3 # Low temperature for factual RAG responses
-    )
-
-    # Define the System Prompt
-    system_prompt = (
-        "You are a friendly, professional AI receptionist for the 'Hair Ways' salon. "
-        "Use the provided context below to answer the customer's questions about services, pricing, and policies. "
-        "If you do not know the answer based on the context, politely say that you don't know and recommend calling the salon directly. "
-        "Do not invent prices or services.\n\n"
-        "Context:\n{context}"
-    )
-
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("human", "{input}"),
-    ])
-
-    question_answer_chain = create_stuff_documents_chain(llm, prompt)
-    rag_chain = create_retrieval_chain(retriever, question_answer_chain)
-    
-    return rag_chain
+def load_salon_knowledge() -> str:
+    """Loads the salon knowledge text file for context injection."""
+    try:
+        if os.path.exists(KNOWLEDGE_PATH):
+            with open(KNOWLEDGE_PATH, "r") as f:
+                return f.read()
+    except Exception:
+        pass
+    return ""
 
 def ask_customer_agent(query: str) -> str:
-    """Answers a public user query using standard Document Retrieval RAG"""
+    """Answers a public user query using a SQL Agent with salon knowledge context."""
     try:
-        qa_chain = get_customer_qa_chain()
-        response = qa_chain.invoke({"input": query})
-        return response.get("answer", "I'm sorry, I couldn't process your request.")
+        # 1. Initialize SQL Database (restricted to service tables only)
+        db_user = os.getenv("DB_USER", "postgres")
+        db_password = os.getenv("DB_PASSWORD", "salman1113")
+        db_name = os.getenv("DB_NAME", "saloon_db")
+        db_host = os.getenv("DB_HOST", "db")
+        db_port = os.getenv("DB_PORT", "5432")
+        db_uri = f"postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+        
+        # Restrict to only service/category tables for security
+        db = SQLDatabase.from_uri(db_uri, include_tables=["services_service", "services_category"])
+
+        # 2. Initialize Groq LLM
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            return "API Key not configured."
+            
+        llm = ChatGroq(
+            model="llama-3.3-70b-versatile",
+            api_key=api_key,
+            temperature=0.3
+        )
+
+        # 3. Create the SQL Agent (same proven approach as admin_agent)
+        agent_executor = create_sql_agent(
+            llm=llm,
+            db=db,
+            agent_type="tool-calling",
+            agent_executor_kwargs={
+                "handle_parsing_errors": True
+            }
+        )
+
+        # 4. Load salon knowledge for context
+        salon_knowledge = load_salon_knowledge()
+
+        # 5. Build the full prompt with system instructions + knowledge context
+        prefix = (
+            "You are a friendly, professional AI receptionist for the 'Hair Ways' salon. "
+            "Your job is to help customers with questions about services, styles, pricing, and policies.\n\n"
+            "CRITICAL RULES:\n"
+            "1. NEVER execute DML commands (INSERT, UPDATE, DELETE, DROP). Only use SELECT.\n"
+            "2. If the customer asks about available services, styles, or prices, ALWAYS query the database to get real data.\n"
+            "3. If the customer asks about policies, hours, or general salon info, use the knowledge context below.\n"
+            "4. Do NOT invent prices or services. Only report what exists in the database.\n"
+            "5. Present information in a warm, customer-friendly way.\n"
+            "6. If you do not know the answer, politely recommend calling the salon directly.\n\n"
+        )
+
+        if salon_knowledge:
+            prefix += f"SALON KNOWLEDGE (for policies and general info):\n{salon_knowledge}\n\n"
+
+        prefix += f"Customer Question: {query}"
+        
+        response = agent_executor.invoke({"input": prefix})
+        return response.get("output", "I'm sorry, I couldn't process your request.")
     except Exception as e:
-        print(f"Error in Customer RAG: {e}")
+        print(f"Error in Customer Hybrid Agent: {e}")
         return "Our AI assistant is temporarily unavailable. Please try again later."
