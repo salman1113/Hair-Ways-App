@@ -1,9 +1,141 @@
 import os
+import datetime
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from langchain_groq import ChatGroq
-from langchain_community.utilities import SQLDatabase
-from langchain_community.agent_toolkits import create_sql_agent
+from langchain_core.tools import tool
+from langchain_core.messages import SystemMessage
+from langgraph.prebuilt import create_react_agent
 
 KNOWLEDGE_PATH = "/app/data/salon_knowledge.txt"
+
+def get_db_connection():
+    """Establishes a connection to the PostgreSQL database."""
+    db_user = os.getenv("DB_USER", "postgres")
+    db_password = os.getenv("DB_PASSWORD", "salman1113")
+    db_name = os.getenv("DB_NAME", "saloon_db")
+    db_host = os.getenv("DB_HOST", "db")
+    db_port = os.getenv("DB_PORT", "5432")
+    
+    return psycopg2.connect(
+        dbname=db_name,
+        user=db_user,
+        password=db_password,
+        host=db_host,
+        port=db_port
+    )
+
+@tool
+def get_active_services() -> list:
+    """Fetches a list of all active salon services, their IDs, prices, durations, and categories."""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        # Fetching safe, read-only data from the services table
+        cur.execute("SELECT id, name, price, duration_minutes, category_id FROM services_service WHERE is_active = true;")
+        services = cur.fetchall()
+        cur.close()
+        conn.close()
+        return services
+    except Exception as e:
+        return [{"error": f"Error fetching services: {str(e)}"}]
+
+@tool
+def check_staff_availability(date_str: str) -> list:
+    """Checks the availability of staff members for a specific date (YYYY-MM-DD format). Returns available staff IDs and their unbooked time slots."""
+    try:
+        query_date = datetime.datetime.strptime(date_str, "%Y-%m-%d").date()
+        today = datetime.date.today()
+        if query_date < today:
+            return [{"error": "Cannot check availability for past dates."}]
+            
+        weekday = query_date.weekday() # 0 = Monday, 6 = Sunday
+        
+        # Determine operating hours based on salon_knowledge.txt
+        if weekday in [0, 1, 2]: # Mon-Wed
+            open_hour, close_hour = 9, 19
+        elif weekday in [3, 4]: # Thu-Fri
+            open_hour, close_hour = 9, 20
+        elif weekday == 5: # Sat
+            open_hour, close_hour = 8, 17
+        else: # Sunday
+            return [{"message": "The salon is closed on Sundays."}]
+            
+        # Generate all possible 1-hour slots based on operating hours
+        possible_slots = []
+        for h in range(open_hour, close_hour):
+            t = datetime.time(hour=h, minute=0)
+            possible_slots.append(t.strftime("%I:%M %p"))
+
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Safely query the explicit custom accounts_user table joined with employee profile 
+        # to ensure we only get valid active staff members.
+        cur.execute(
+            """
+            SELECT u.id, u.username, u.email, p.job_title 
+            FROM accounts_user u
+            JOIN accounts_employeeprofile p ON u.id = p.user_id
+            WHERE p.is_available = true;
+            """
+        )
+        staff_members = cur.fetchall()
+        
+        # Safely query 'bookings_booking' to find taken time slots for the specific date
+        cur.execute(
+            """
+            SELECT employee_id, booking_time 
+            FROM bookings_booking 
+            WHERE booking_date = %s AND status != 'CANCELLED';
+            """,
+            (query_date,)
+        )
+        bookings = cur.fetchall()
+        
+        cur.close()
+        conn.close()
+        
+        # Group booked times by staff ID
+        staff_bookings = {}
+        for b in bookings:
+            emp_id = b['employee_id']
+            if emp_id not in staff_bookings:
+                staff_bookings[emp_id] = set()
+            # booking_time is a Python datetime.time object
+            staff_bookings[emp_id].add(b['booking_time'].strftime("%I:%M %p"))
+            
+        availability = []
+        for s in staff_members:
+            staff_id = s['id']
+            # Using username, falling back to email or generic "Stylist"
+            name = s.get('username') or s.get('email') or f"Stylist {staff_id}"
+            
+            # Find which possible slots are NOT in the booked slots
+            booked_slots = staff_bookings.get(staff_id, set())
+            free_slots = [slot for slot in possible_slots if slot not in booked_slots]
+            
+            # If checking today, physically filter out slots that have already passed in reality
+            if query_date == today:
+                current_time = datetime.datetime.now().time()
+                valid_free_slots = []
+                for slot in free_slots:
+                    slot_time = datetime.datetime.strptime(slot, "%I:%M %p").time()
+                    if slot_time > current_time:
+                        valid_free_slots.append(slot)
+                free_slots = valid_free_slots
+
+            if free_slots:
+                availability.append({
+                    "staff_id": staff_id, 
+                    "name": name, 
+                    "available_slots": free_slots
+                })
+                
+        return availability if availability else [{"message": "No staff members have any available slots on this date."}]
+    except Exception as e:
+        print(f"DEBUG STAFF AVAIL: {str(e)}")
+        return [{"error": f"Error fetching staff availability: {str(e)}"}]
 
 def load_salon_knowledge() -> str:
     """Loads the salon knowledge text file for context injection."""
@@ -13,66 +145,60 @@ def load_salon_knowledge() -> str:
                 return f.read()
     except Exception:
         pass
-    return ""
+    return "No static knowledge provided."
 
 def ask_customer_agent(query: str) -> str:
-    """Answers a public user query using a SQL Agent with salon knowledge context."""
+    """Answers a public user query using an Enterprise Secure Tool-Calling Agent."""
     try:
-        # 1. Initialize SQL Database (restricted to service tables only)
-        db_user = os.getenv("DB_USER", "postgres")
-        db_password = os.getenv("DB_PASSWORD", "salman1113")
-        db_name = os.getenv("DB_NAME", "saloon_db")
-        db_host = os.getenv("DB_HOST", "db")
-        db_port = os.getenv("DB_PORT", "5432")
-        db_uri = f"postgresql+psycopg2://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
-        
-        # Restrict to only service/category tables for security
-        db = SQLDatabase.from_uri(db_uri, include_tables=["services_service", "services_category"])
-
-        # 2. Initialize Groq LLM
         api_key = os.getenv("GROQ_API_KEY")
         if not api_key:
             return "API Key not configured."
             
+        # 1. Initialize Groq LLM
         llm = ChatGroq(
             model="llama-3.3-70b-versatile",
             api_key=api_key,
-            temperature=0.3
+            temperature=0.2 # Low temperature for reliable tool calling and factual responses
         )
 
-        # 3. Create the SQL Agent (same proven approach as admin_agent)
-        agent_executor = create_sql_agent(
-            llm=llm,
-            db=db,
-            agent_type="tool-calling",
-            agent_executor_kwargs={
-                "handle_parsing_errors": True
-            }
-        )
+        # 2. Define our safe tools
+        tools = [get_active_services, check_staff_availability]
 
-        # 4. Load salon knowledge for context
+        # 3. Load static knowledge and current date
         salon_knowledge = load_salon_knowledge()
+        today_date = datetime.date.today().isoformat()
 
-        # 5. Build the full prompt with system instructions + knowledge context
-        prefix = (
-            "You are a friendly, professional AI receptionist for the 'Hair Ways' salon. "
-            "Your job is to help customers with questions about services, styles, pricing, and policies.\n\n"
-            "CRITICAL RULES:\n"
-            "1. NEVER execute DML commands (INSERT, UPDATE, DELETE, DROP). Only use SELECT.\n"
-            "2. If the customer asks about available services, styles, or prices, ALWAYS query the database to get real data.\n"
-            "3. If the customer asks about policies, hours, or general salon info, use the knowledge context below.\n"
-            "4. Do NOT invent prices or services. Only report what exists in the database.\n"
-            "5. Present information in a warm, customer-friendly way.\n"
-            "6. If you do not know the answer, politely recommend calling the salon directly.\n\n"
-        )
+        # 4. Construct the System Prompt with strict guidelines
+        system_prompt = f"""You are a friendly, professional AI receptionist for the 'Hair Ways' salon.
+Your job is to help customers with questions about services, styles, pricing, staff availability, and policies.
 
-        if salon_knowledge:
-            prefix += f"SALON KNOWLEDGE (for policies and general info):\n{salon_knowledge}\n\n"
+CRITICAL RULES:
+1. For policies, hours, or general salon info, rely EXCLUSIVELY on the SALON KNOWLEDGE provided below. Do not invent rules.
+2. For services and prices, use the `get_active_services` tool.
+3. For staff availability and booking schedules, use the `check_staff_availability` tool.
+4. When a user explicitly agrees to book or you are ready to propose a booking action, you MUST output a markdown Call-To-Action link in this EXACT format:
+   [Book Now](/book?service=ServiceID&staff=StaffID&date=YYYY-MM-DD&time=HH:MM)
+   (Replace ServiceID, StaffID, date, and time. Example: /book?service=1&staff=4&date=2026-02-25&time=10:30. Do not use this if IDs or time are unknown).
+5. Do NOT invent prices, services, or staff members. Only report what the tools provide.
+6. Present information in a warm, customer-friendly way.
 
-        prefix += f"Customer Question: {query}"
+TODAY's DATE: {today_date}
+
+=== SALON KNOWLEDGE (Static Policies & Contact) ===
+{salon_knowledge}
+=================================================
+"""
+
+        # 5. Create the modern LangGraph React Agent
+        # Passing no kwargs for system prompt to ensure cross-version compatibility
+        agent = create_react_agent(llm, tools)
+
+        # 6. Execute! We pass the SystemMessage explicitly in the messages list.
+        response = agent.invoke({"messages": [SystemMessage(content=system_prompt), ("human", query)]})
         
-        response = agent_executor.invoke({"input": prefix})
-        return response.get("output", "I'm sorry, I couldn't process your request.")
+        # The response is a dictionary containing the message history.
+        return response["messages"][-1].content
+        
     except Exception as e:
         print(f"Error in Customer Hybrid Agent: {e}")
         return "Our AI assistant is temporarily unavailable. Please try again later."

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Star } from 'lucide-react';
 
 const StylistSelection = ({ employees, selectedEmployee, setSelectedEmployee }) => {
@@ -10,7 +10,7 @@ const StylistSelection = ({ employees, selectedEmployee, setSelectedEmployee }) 
                 <p className="text-gray-500 text-sm">Select a professional for your service.</p>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[50vh] md:max-h-[400px] overflow-y-auto custom-scrollbar pr-2 pb-2">
                 {employees.map(emp => {
                     const isSelected = selectedEmployee === emp.id;
                     return (

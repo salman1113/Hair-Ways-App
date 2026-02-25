@@ -8,7 +8,7 @@ const ServiceSelection = ({ categories, services, selectedServices, toggleServic
         if (categories.length > 0 && !activeCategory) {
             setActiveCategory(categories[0].id);
         }
-    }, [categories]);
+    }, [categories, activeCategory]);
 
     const handleToggle = (id) => {
         toggleService(id);
@@ -36,36 +36,38 @@ const ServiceSelection = ({ categories, services, selectedServices, toggleServic
             </div>
 
             {/* Services Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {services.filter(s => s.category === activeCategory).map(service => {
-                    const isSelected = selectedServices.includes(service.id);
-                    return (
-                        <div
-                            key={service.id}
-                            onClick={() => handleToggle(service.id)}
-                            className={`p-5 rounded-2xl cursor-pointer flex justify-between items-center transition-all duration-300 border-2
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[50vh] md:max-h-[400px] overflow-y-auto custom-scrollbar pr-2 pb-2">
+                {services
+                    .filter(s => s.category === activeCategory)
+                    .map(service => {
+                        const isSelected = selectedServices.includes(service.id);
+                        return (
+                            <div
+                                key={service.id}
+                                onClick={() => handleToggle(service.id)}
+                                className={`p-5 rounded-2xl cursor-pointer flex justify-between items-center transition-all duration-300 border-2
                     ${isSelected
-                                    ? 'border-[#C19D6C] bg-[#C19D6C]/10 shadow-md transform scale-[1.02]'
-                                    : 'border-transparent bg-gray-50 hover:bg-white hover:shadow-sm hover:border-gray-200'}`}
-                        >
-                            <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
-                                <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-colors
+                                        ? 'border-[#C19D6C] bg-[#C19D6C]/10 shadow-md transform scale-[1.02]'
+                                        : 'border-transparent bg-gray-50 hover:bg-white hover:shadow-sm hover:border-gray-200'}`}
+                            >
+                                <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
+                                    <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center transition-colors
                             ${isSelected ? 'bg-[#C19D6C] text-white' : 'bg-gray-200 text-gray-400'}`}>
-                                    <Scissors size={18} />
+                                        <Scissors size={18} />
+                                    </div>
+                                    <div className="overflow-hidden">
+                                        <h4 className={`font-bold text-sm truncate pr-2 ${isSelected ? 'text-[#1A1A1A]' : 'text-gray-800'}`}>{service.name}</h4>
+                                        <p className="text-xs text-gray-500">{service.duration_minutes} mins</p>
+                                    </div>
                                 </div>
-                                <div className="overflow-hidden">
-                                    <h4 className={`font-bold text-sm truncate pr-2 ${isSelected ? 'text-[#1A1A1A]' : 'text-gray-800'}`}>{service.name}</h4>
-                                    <p className="text-xs text-gray-500">{service.duration_minutes} mins</p>
-                                </div>
-                            </div>
 
-                            <div className="text-right flex-shrink-0">
-                                <p className="text-sm font-black text-[#1A1A1A]">₹{service.price}</p>
-                                {isSelected && <CheckCircle size={16} className="text-[#C19D6C] ml-auto mt-1" />}
+                                <div className="text-right flex-shrink-0">
+                                    <p className="text-sm font-black text-[#1A1A1A]">₹{service.price}</p>
+                                    {isSelected && <CheckCircle size={16} className="text-[#C19D6C] ml-auto mt-1" />}
+                                </div>
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
             </div>
 
             {services.filter(s => s.category === activeCategory).length === 0 && (

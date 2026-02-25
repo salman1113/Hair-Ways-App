@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getCategories, getServices, getEmployees, createBooking } from '../services/api';
 import { Loader2, ChevronRight, ChevronLeft, CheckCircle, Phone, MapPin, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -13,6 +13,14 @@ import BookingSummary from '../components/booking/BookingSummary';
 
 const BookingPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Parse URL Parameters (Useful when redirected by the AI Chatbot)
+  const queryParams = new URLSearchParams(location.search);
+  const initialService = queryParams.get('service');
+  const initialStaff = queryParams.get('staff');
+  const initialDate = queryParams.get('date');
+  const initialTime = queryParams.get('time');
 
   // --- DATA STATES ---
   const [categories, setCategories] = useState([]);
@@ -21,14 +29,19 @@ const BookingPage = () => {
   const [loading, setLoading] = useState(true);
 
   // --- WIZARD STATE ---
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(() => {
+    if (initialService && initialStaff && initialDate && initialTime) return 4; // Jump straight to Summary
+    if (initialService && initialStaff) return 3; // Jump straight to Time Selection
+    if (initialService) return 2; // Jump to Stylist Selection
+    return 1;
+  });
   const totalSteps = 4;
 
   // --- SELECTION STATES ---
-  const [selectedServices, setSelectedServices] = useState([]);
-  const [selectedEmployee, setSelectedEmployee] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
+  const [selectedServices, setSelectedServices] = useState(initialService ? [Number(initialService)] : []);
+  const [selectedEmployee, setSelectedEmployee] = useState(initialStaff ? Number(initialStaff) : '');
+  const [date, setDate] = useState(initialDate || '');
+  const [time, setTime] = useState(initialTime || '');
   const [submitting, setSubmitting] = useState(false);
 
   // --- LOAD DATA ---
@@ -111,7 +124,7 @@ const BookingPage = () => {
           return;
         }
         else if (errData.message) {
-          errorMsg = errData.message;
+          errorMsg = Array.isArray(errData.message) ? errData.message[0] : errData.message;
         }
       }
       toast.error(errorMsg, { id: toastId });

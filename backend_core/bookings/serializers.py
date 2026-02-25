@@ -52,6 +52,16 @@ class BookingSerializer(serializers.ModelSerializer):
         if valid_services_count != len(set(service_ids)):
              raise serializers.ValidationError({"service_ids": "One or more services are invalid or inactive."})
 
+        # Temporal Validation: Prevent booking past times for today
+        if booking_date and booking_time:
+            from django.utils import timezone
+            local_now = timezone.localtime() if timezone.is_aware(timezone.now()) else datetime.now()
+            
+            if booking_date < local_now.date():
+                raise serializers.ValidationError({"booking_date": "Cannot book for a past date."})
+            elif booking_date == local_now.date() and booking_time < local_now.time():
+                raise serializers.ValidationError({"error": "Time Pass", "message": "Cannot book a slot in the past."})
+
         if employee and booking_date and booking_time:
             req_duration = 0
             if service_ids:
@@ -85,6 +95,32 @@ class BookingSerializer(serializers.ModelSerializer):
                         "message": f"Stylist is busy until {suggested_time.strftime('%H:%M')}.",
                         "suggested_time": suggested_time.strftime("%H:%M")
                     })
+
+            # Check Customer Overlaps (Prevent booking multiple services at the exact same time)
+            request = self.context.get('request')
+            if request and hasattr(request, 'user') and request.user.is_authenticated:
+                user_day_bookings = Booking.objects.filter(
+                    customer=request.user,
+                    booking_date=booking_date,
+                    status__in=['PENDING', 'CONFIRMED', 'IN_PROGRESS']
+                ).prefetch_related('items__service')
+
+                for booking in user_day_bookings:
+                    exist_duration = sum(item.service.duration_minutes for item in booking.items.all())
+                    if exist_duration == 0: exist_duration = 30
+                    
+                    exist_start_dt = datetime.combine(booking.booking_date, booking.booking_time)
+                    exist_end_dt = exist_start_dt + timedelta(minutes=exist_duration)
+
+                    if req_start_dt < exist_end_dt and req_end_dt > exist_start_dt:
+                        # Convert to 12-hour AM/PM format for the user message
+                        formatted_start = exist_start_dt.strftime('%I:%M %p')
+                        formatted_end = exist_end_dt.strftime('%I:%M %p')
+                        
+                        raise serializers.ValidationError({
+                            "error": "Double Booking",
+                            "message": f"You already have an appointment from {formatted_start} to {formatted_end}. Please select a time after {formatted_end}."
+                        })
 
         return data
 

@@ -3,33 +3,6 @@
 ## About Us
 Welcome to Hair Ways! We are a premium digital-first men's grooming salon. Our goal is to provide a seamless booking experience and top-tier haircuts, beard trims, and styling. We use advanced computer vision AI to analyze face shapes and recommend the perfect styles for our clients.
 
-## Services & Pricing
-
-1. Classic Men's Haircut
-- Price: $35.00
-- Duration: 30 minutes
-- Description: A precision haircut tailored to your preferences, including a wash, style, and hot towel finish.
-
-2. Beard Trim & Line Up
-- Price: $20.00
-- Duration: 15 minutes
-- Description: Detailed shaping, trimming, and a straight-razor lineup for a sharp, clean look.
-
-3. The Executive Package (Haircut + Beard)
-- Price: $50.00
-- Duration: 45 minutes
-- Description: The ultimate grooming experience. Includes a classic haircut, beard shaping, hot towel treatment, and premium styling products.
-
-4. Skin Fade
-- Price: $40.00
-- Duration: 40 minutes
-- Description: A precise, blended drop or high fade down to the skin, finished with elite styling.
-
-5. Kids Haircut (Under 12)
-- Price: $25.00
-- Duration: 30 minutes
-- Description: A gentle, patient, and stylish haircut for children.
-
 ## Booking & Cancellation Policies
 
 - Booking: All appointments must be booked in advance through our website or mobile app. Walk-ins are generally not accepted unless there is a vacant slot, but we highly encourage booking online to guarantee your spot.
