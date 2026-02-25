@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     BookingListCreateApi, BookingDetailApi, BookingCancelApi, 
     BookingRescheduleApi, StartJobApi, FinishJobApi, 
-    BookingTrackApi, EmployeeDashboardApi, AdminStatsApi, EmployeeAnalyticsApi
+    BookingTrackApi, EmployeeDashboardApi, AdminAnalyticsApi, EmployeeAnalyticsApi
 )
 
 urlpatterns = [
@@ -22,5 +22,5 @@ urlpatterns = [
     path('employee/analytics/', EmployeeAnalyticsApi.as_view(), name='employee-analytics'),
 
     # Admin
-    path('admin/stats/', AdminStatsApi.as_view(), name='admin-stats'),
+    path('admin/analytics/', AdminAnalyticsApi.as_view(), name='admin-analytics'),
 ]

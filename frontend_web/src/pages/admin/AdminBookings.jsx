@@ -35,10 +35,11 @@ const AdminBookings = () => {
 
         if (searchQuery) {
             const lowerQ = searchQuery.toLowerCase();
-            result = result.filter(b =>
-                b.token_number.toLowerCase().includes(lowerQ) ||
-                (b.customer_name && b.customer_name.toLowerCase().includes(lowerQ))
-            );
+            result = result.filter(b => {
+                const displayName = b.is_walk_in ? b.guest_name : (b.customer_details?.username || '');
+                return b.token_number.toLowerCase().includes(lowerQ) ||
+                    (displayName && displayName.toLowerCase().includes(lowerQ));
+            });
         }
         setFilteredBookings(result);
     }, [bookings, statusFilter, searchQuery]);
@@ -149,15 +150,15 @@ const AdminBookings = () => {
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden w-full">
                     <div className="overflow-x-auto max-w-full pb-2 scrollbar-thin scrollbar-thumb-gray-300">
                         <table className="w-full text-left text-sm min-w-[800px]">
-                            <thead className="bg-gray-50 text-gray-500 font-bold uppercase text-xs border-b">
+                            <thead className="bg-gray-50 text-[10px] md:text-xs tracking-wider text-gray-500 uppercase border-b border-gray-100">
                                 <tr>
-                                    <th className="p-4">Token</th>
-                                    <th className="p-4">Time</th>
-                                    <th className="p-4">Customer</th>
-                                    <th className="p-4">Stylist</th>
-                                    <th className="p-4">Service</th>
-                                    <th className="p-4">Status</th>
-                                    <th className="p-4 text-center">Action</th>
+                                    <th className="p-4 md:p-5 font-bold">Token</th>
+                                    <th className="p-4 md:p-5 font-bold">Time</th>
+                                    <th className="p-4 md:p-5 font-bold">Customer</th>
+                                    <th className="p-4 md:p-5 font-bold">Stylist</th>
+                                    <th className="p-4 md:p-5 font-bold">Service</th>
+                                    <th className="p-4 md:p-5 font-bold">Status</th>
+                                    <th className="p-4 md:p-5 font-bold text-center">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
@@ -166,29 +167,34 @@ const AdminBookings = () => {
                                 ) : (
                                     filteredBookings.map((b) => (
                                         <tr key={b.id} className="hover:bg-gray-50 transition cursor-pointer" onClick={() => setSelectedBooking(b)}>
-                                            <td className="p-4">
-                                                <span className="font-black text-[#3F0D12] bg-red-50 px-3 py-1 rounded-lg">{b.token_number}</span>
+                                            <td className="p-4 md:p-5">
+                                                <span className="font-black text-[#3F0D12] bg-red-50 border border-red-100 px-3 py-1.5 rounded-lg shadow-sm">{b.token_number}</span>
                                             </td>
-                                            <td className="p-4 font-bold text-gray-600">{b.booking_time}</td>
-                                            <td className="p-4">
-                                                <p className="font-bold text-gray-900">{b.customer_name || b.guest_name}</p>
+                                            <td className="p-4 md:p-5 font-bold text-gray-600 flex items-center gap-2 mt-1"><Clock size={14} className="text-gray-400" /> {b.booking_time}</td>
+                                            <td className="p-4 md:p-5">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-bold text-gray-900">{b.is_walk_in ? b.guest_name : (b.customer_details?.username || 'Online Customer')}</p>
+                                                    <span className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase tracking-wider ${b.is_walk_in ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                        {b.is_walk_in ? 'Walk-in' : 'Online'}
+                                                    </span>
+                                                </div>
                                                 <p className="text-xs text-gray-400">{b.phone_number}</p>
                                             </td>
-                                            <td className="p-4 text-gray-600">{b.employee_details?.user_details?.username || <span className="text-gray-400 italic">Unassigned</span>}</td>
-                                            <td className="p-4">
+                                            <td className="p-4 md:p-5 text-gray-600">{b.employee_details?.user_details?.username || <span className="text-gray-400 italic">Unassigned</span>}</td>
+                                            <td className="p-4 md:p-5">
                                                 <p className="font-medium text-gray-800 truncate max-w-[150px]">
                                                     {b.items.map(i => i.service_name).join(', ')}
                                                 </p>
-                                                <p className="text-xs text-green-600 font-bold">₹{b.total_price}</p>
+                                                <p className="text-[10px] text-green-600 font-bold tracking-widest mt-0.5">₹{b.total_price}</p>
                                             </td>
-                                            <td className="p-4">
-                                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${getStatusColor(b.status)}`}>
+                                            <td className="p-4 md:p-5">
+                                                <span className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-widest uppercase border ${getStatusColor(b.status)}`}>
                                                     {b.status.replace('_', ' ')}
                                                 </span>
                                             </td>
-                                            <td className="p-4 text-center">
-                                                <button className="text-[#3F0D12] hover:bg-gray-100 p-2 rounded-full font-bold text-xs border border-gray-200">
-                                                    View
+                                            <td className="p-4 md:p-5 text-center">
+                                                <button className="text-gray-500 hover:bg-gray-100 hover:text-[#3F0D12] p-2.5 rounded-xl transition font-bold text-xs border border-gray-200 shadow-sm">
+                                                    Manage
                                                 </button>
                                             </td>
                                         </tr>
@@ -232,7 +238,12 @@ const AdminBookings = () => {
                                 <h4 className="text-xs font-bold text-gray-400 uppercase mb-3 flex items-center gap-2"><User size={14} /> Customer Details</h4>
                                 <div className="flex justify-between items-center">
                                     <div>
-                                        <p className="font-bold text-lg text-[#3F0D12]">{selectedBooking.customer_name || selectedBooking.guest_name}</p>
+                                        <div className="flex items-center gap-2">
+                                            <p className="font-bold text-lg text-[#3F0D12]">{selectedBooking.is_walk_in ? selectedBooking.guest_name : (selectedBooking.customer_details?.username || 'Online Customer')}</p>
+                                            <span className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase tracking-wider ${selectedBooking.is_walk_in ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                {selectedBooking.is_walk_in ? 'Walk-in' : 'Online'}
+                                            </span>
+                                        </div>
                                         <p className="text-sm text-gray-500">{selectedBooking.phone_number}</p>
                                     </div>
                                     <div className="text-right">

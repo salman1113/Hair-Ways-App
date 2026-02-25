@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getEmployees, deleteEmployee, updateEmployee, getEmployeeAttendance } from '../../services/api';
 import api from '../../services/api';
-import { UserPlus, Search, Trash2, Edit, Eye, X, Clock, CheckCircle, XCircle, Loader2, DollarSign, Star, Briefcase, User } from 'lucide-react';
+import { UserPlus, Search, Trash2, Edit, Eye, X, Clock, CheckCircle, XCircle, Loader2, DollarSign, Star, Briefcase, User, IndianRupee } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 const AdminEmployees = () => {
+    const navigate = useNavigate();
     const [employees, setEmployees] = useState([]);
     const [filteredEmployees, setFilteredEmployees] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -216,6 +218,9 @@ const AdminEmployees = () => {
                                             </td>
                                             <td className="p-4 text-center">
                                                 <div className="flex items-center justify-center gap-2">
+                                                    <button onClick={() => navigate(`/admin/employees/${emp.id}`)} className="p-2 border border-green-200 text-green-600 bg-white rounded-lg hover:bg-green-50 transition shadow-sm" title="Financial Details">
+                                                        <IndianRupee size={16} />
+                                                    </button>
                                                     <button onClick={() => { setSelectedViewEmp(emp); loadViewAttendance(emp.id); }} className="p-2 border border-blue-200 text-blue-600 bg-white rounded-lg hover:bg-blue-50 transition shadow-sm" title="View Details">
                                                         <Eye size={16} />
                                                     </button>

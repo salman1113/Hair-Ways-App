@@ -45,6 +45,10 @@ class Booking(models.Model):
     # Reschedule Tracking
     is_rescheduled = models.BooleanField(default=False, help_text="Can only reschedule once")
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    
+    # Financial Tracking
+    is_payout_settled = models.BooleanField(default=False, help_text="True if employee cut has been paid out")
+    
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)  # Indexed for recent bookings list
 
     class Meta:

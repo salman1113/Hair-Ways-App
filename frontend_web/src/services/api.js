@@ -269,8 +269,9 @@ export const finishJob = async (id) => {
 };
 
 // --- ADMIN STATS & PAYROLL ---
-export const getAdminStats = async () => {
-  const response = await api.get('/bookings/admin/stats/');
+export const getAdminAnalytics = async (date) => {
+  const url = date ? `/bookings/admin/analytics/?date=${date}` : '/bookings/admin/analytics/';
+  const response = await api.get(url);
   return response.data;
 };
 
@@ -281,6 +282,29 @@ export const getPayroll = async () => {
 
 export const generatePayroll = async (month) => {
   const response = await api.post('/accounts/payroll/generate/', { month });
+  return response.data;
+};
+
+// --- PAYOUTS ---
+export const getEmployeeDetail = async (id) => {
+  const response = await api.get(`/accounts/employees/${id}/`);
+  return response.data;
+};
+
+export const settlePayout = async (employeeId, formData) => {
+  const response = await api.post(`/accounts/employees/${employeeId}/settle-payout/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data;
+};
+
+export const getPayoutHistory = async (employeeId) => {
+  const response = await api.get(`/accounts/employees/${employeeId}/payout-history/`);
+  return response.data;
+};
+
+export const getMyPayoutHistory = async () => {
+  const response = await api.get('/accounts/employees/me/payout-history/');
   return response.data;
 };
 

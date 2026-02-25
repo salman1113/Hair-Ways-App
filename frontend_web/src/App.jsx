@@ -34,6 +34,7 @@ import ProfilePage from './pages/ProfilePage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminServices from './pages/admin/AdminServices';
 import AdminEmployees from './pages/admin/AdminEmployees';
+import AdminEmployeeDetail from './pages/admin/AdminEmployeeDetail';
 import AdminInventory from './pages/admin/AdminInventory';
 import AdminBookings from './pages/admin/AdminBookings';
 
@@ -126,6 +127,7 @@ const AppContent = () => {
               <Route index element={<AdminDashboard />} /> {/* Main Dashboard */}
               <Route path="services" element={<AdminServices />} />
               <Route path="employees" element={<AdminEmployees />} />
+              <Route path="employees/:id" element={<AdminEmployeeDetail />} />
               <Route path="inventory" element={<AdminInventory />} />
               <Route path="bookings" element={<AdminBookings />} />
             </Route>

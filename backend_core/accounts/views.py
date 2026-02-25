@@ -5,13 +5,14 @@ from django.contrib.auth import get_user_model
 from django.contrib import auth
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
-from .models import EmployeeProfile, Attendance, Payroll, Review, Notification
+from .models import EmployeeProfile, Attendance, Payroll, Review, Notification, PayoutHistory
 from .serializers import (
     UserSerializer, EmployeeProfileSerializer, AttendanceSerializer, 
     EmployeeCreationSerializer, UserRegistrationSerializer, PayrollSerializer,
     GoogleLoginSerializer, LoginSerializer, VerifyOTPSerializer,
-    ReviewSerializer, NotificationSerializer
+    ReviewSerializer, NotificationSerializer, PayoutHistorySerializer
 )
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
@@ -561,3 +562,65 @@ class GoogleLoginApi(APIView):
             traceback.print_exc()
             print(f"DEBUG: Exception: {e}")
             return Response({"error": str(e), "trace": traceback.format_exc()}, status=500)
+
+# --- PAYOUT APIS ---
+
+class SettlePayoutApi(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request, pk):
+        """Settle all unpaid completed bookings for an employee. Requires screenshot upload."""
+        if request.user.role != 'ADMIN':
+            return Response({"error": "Admin only"}, status=403)
+
+        profile = get_object_or_404(EmployeeProfile, pk=pk)
+        amount = request.data.get('amount_paid')
+        screenshot = request.FILES.get('screenshot')
+
+        if not amount:
+            return Response({"error": "amount_paid is required"}, status=400)
+
+        from bookings.models import Booking
+
+        with transaction.atomic():
+            # Mark all unpaid completed bookings as settled
+            unpaid_bookings = Booking.objects.filter(
+                employee=profile,
+                status='COMPLETED',
+                is_payout_settled=False
+            )
+            settled_count = unpaid_bookings.update(is_payout_settled=True)
+
+            # Create PayoutHistory record
+            payout = PayoutHistory.objects.create(
+                employee=profile,
+                amount_paid=amount,
+                screenshot=screenshot
+            )
+
+        serializer = PayoutHistorySerializer(payout)
+        return Response({
+            "message": f"Settled {settled_count} bookings. Payout recorded.",
+            "payout": serializer.data
+        }, status=201)
+
+class PayoutHistoryListApi(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk=None):
+        """Get payout history. Admins can view any employee. Employees see their own."""
+        if pk:
+            # Admin viewing a specific employee
+            if request.user.role != 'ADMIN':
+                return Response({"error": "Admin only"}, status=403)
+            profile = get_object_or_404(EmployeeProfile, pk=pk)
+        else:
+            # Employee viewing their own
+            if not hasattr(request.user, 'employee_profile'):
+                return Response({"error": "Not an employee"}, status=403)
+            profile = request.user.employee_profile
+
+        payouts = PayoutHistory.objects.filter(employee=profile).order_by('-payment_date')
+        serializer = PayoutHistorySerializer(payouts, many=True)
+        return Response(serializer.data)

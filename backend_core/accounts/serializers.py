@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from django.db import transaction
-from .models import EmployeeProfile, Attendance, Payroll, Review, Notification
+from .models import EmployeeProfile, Attendance, Payroll, Review, Notification, PayoutHistory
 
 User = get_user_model()
 
@@ -95,7 +95,8 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
             'id', 'user_details', 
             'username', 'email', 'phone_number', 
             'job_title', 'years_of_experience', 'bio', 
-            'rating', 'review_count', 'commission_rate', 'wallet_balance', 
+            'rating', 'review_count', 'commission_rate', 'commission_percentage', 
+            'wallet_balance', 'pending_wallet_balance',
             'is_available', 'shift_start', 'shift_end', 
             'attendance_today'
         ]
@@ -106,18 +107,32 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
         return AttendanceSerializer(attendance).data if attendance else None
 
     def update(self, instance, validated_data):
+        # Extract DRF's nested 'user' dict (created because of source='user.xyz')
         user_data = validated_data.pop('user', {})
         user = instance.user
+        
+        # Update User model explicit fields
         if user_data:
-            user.username = user_data.get('username', user.username)
-            user.email = user_data.get('email', user.email)
-            user.phone_number = user_data.get('phone_number', user.phone_number)
+            if 'username' in user_data:
+                user.username = user_data['username']
+            if 'email' in user_data:
+                user.email = user_data['email']
+            if 'phone_number' in user_data:
+                user.phone_number = user_data['phone_number']
             user.save()
 
+        # Update EmployeeProfile fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
         return instance
+
+class PayoutHistorySerializer(serializers.ModelSerializer):
+    employee_name = serializers.CharField(source='employee.user.username', read_only=True)
+    
+    class Meta:
+        model = PayoutHistory
+        fields = ['id', 'employee', 'employee_name', 'amount_paid', 'payment_date', 'screenshot']
 
 # CREATION SERIALIZER
 class EmployeeCreationSerializer(serializers.ModelSerializer):
@@ -142,7 +157,7 @@ class EmployeeCreationSerializer(serializers.ModelSerializer):
         model = EmployeeProfile
         fields = [
             'username', 'email', 'password', 'phone_number', 
-            'job_title', 'commission_rate', 'shift_start', 'shift_end', 
+            'job_title', 'commission_rate', 'commission_percentage', 'shift_start', 'shift_end', 
             'is_available', 'years_of_experience', 'bio', 'rating', 'review_count', 'wallet_balance'
         ]
 

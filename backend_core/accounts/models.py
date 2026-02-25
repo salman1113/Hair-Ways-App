@@ -70,7 +70,8 @@ class EmployeeProfile(models.Model):
     review_count = models.PositiveIntegerField(default=0)
 
     # Admin / Internal
-    commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, help_text="Commission percentage per service")
+    commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, help_text="Commission flat rate or fixed amount (deprecated, use percentage)")
+    commission_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=50.00, help_text="Commission percentage per service")
     is_available = models.BooleanField(default=True)
 
     shift_start = models.TimeField(null=True, blank=True, help_text="Shift Start Time")
@@ -78,8 +79,29 @@ class EmployeeProfile(models.Model):
     wallet_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, help_text="Accumulated Commission")
     base_salary = models.DecimalField(max_digits=10, decimal_places=2, default=15000.00, help_text="Fixed Monthly Salary")
 
+    @property
+    def pending_wallet_balance(self):
+        # Calculate pending balance dynamically from unpaid completed bookings
+        from bookings.models import Booking
+        unpaid_bookings = Booking.objects.filter(
+            employee=self, 
+            status='COMPLETED', 
+            is_payout_settled=False
+        )
+        total_unpaid = sum(job.total_price for job in unpaid_bookings)
+        return float(total_unpaid) * (float(self.commission_percentage) / 100)
+
     def __str__(self):
         return f"{self.user.email} - {self.job_title}"
+
+class PayoutHistory(models.Model):
+    employee = models.ForeignKey(EmployeeProfile, on_delete=models.CASCADE, related_name='payouts')
+    amount_paid = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_date = models.DateTimeField(auto_now_add=True)
+    screenshot = models.ImageField(upload_to='payout_receipts/', null=True, blank=True)
+
+    def __str__(self):
+        return f"Payout of {self.amount_paid} to {self.employee.user.username} on {self.payment_date.strftime('%Y-%m-%d')}"
 
 class CustomerProfile(models.Model):
     """

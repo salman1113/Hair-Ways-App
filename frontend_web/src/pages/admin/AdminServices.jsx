@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getServices, createService, deleteService, getCategories, updateService, createCategory, deleteCategory } from '../../services/api';
-import { Trash2, Edit, Plus, Image, Clock, Search, FolderPlus, X } from 'lucide-react';
+import { Trash2, Edit, Plus, Image, Clock, Search, FolderPlus, X, Package } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
 const AdminServices = () => {
@@ -155,49 +155,84 @@ const AdminServices = () => {
                     </div>
                 </div>
 
-                {/* SERVICE GRID */}
+                {/* SERVICE LIST VIEW (Data Table) */}
                 {filteredServices.length === 0 ? (
-                    <div className="text-center py-20 text-gray-400 font-medium">No services found.</div>
+                    <div className="text-center py-20 bg-white rounded-2xl border border-gray-200">
+                        <Package size={48} className="mx-auto text-gray-300 mb-4" />
+                        <h3 className="text-lg font-bold text-gray-700">No services found</h3>
+                        <p className="text-sm text-gray-400 mt-1">Try adjusting your filters or search constraints.</p>
+                    </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredServices.map(srv => (
-                            <div key={srv.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition group">
+                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse min-w-[800px]">
+                                <thead>
+                                    <tr className="bg-gray-50 border-b border-gray-100 text-[10px] md:text-xs tracking-wider text-gray-500 uppercase">
+                                        <th className="p-4 md:p-5 font-bold">Service</th>
+                                        <th className="p-4 md:p-5 font-bold">Category</th>
+                                        <th className="p-4 md:p-5 font-bold">Duration</th>
+                                        <th className="p-4 md:p-5 font-bold">Price</th>
+                                        <th className="p-4 md:p-5 font-bold text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {filteredServices.map(srv => {
+                                        // Find category name for display
+                                        const catObj = categories.find(c => c.id === srv.category);
+                                        const catName = catObj ? catObj.name : 'Uncategorized';
 
-                                {/* Image & Price */}
-                                <div className="relative h-40 w-full rounded-xl overflow-hidden mb-4 bg-gray-100">
-                                    <img
-                                        src={srv.image || "https://via.placeholder.com/300"}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                        alt={srv.name}
-                                    />
-                                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-lg text-sm font-black text-[#3F0D12] shadow-sm">
-                                        ₹{srv.price}
-                                    </div>
-                                </div>
-
-                                {/* Details */}
-                                <div className="mb-4">
-                                    <h3 className="font-bold text-lg text-[#3F0D12] mb-1">{srv.name}</h3>
-                                    <p className="text-xs text-gray-500 line-clamp-2">{srv.description}</p>
-                                </div>
-
-                                {/* Footer */}
-                                <div className="flex justify-between items-center pt-3 border-t border-dashed border-gray-200">
-                                    <div className="flex items-center gap-1 text-xs font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-lg">
-                                        <Clock size={14} /> {srv.duration_minutes} Mins
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button onClick={() => handleEdit(srv)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition">
-                                            <Edit size={18} />
-                                        </button>
-                                        <button onClick={() => handleDelete(srv.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition">
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </div>
-                                </div>
-
-                            </div>
-                        ))}
+                                        return (
+                                            <tr key={srv.id} className="hover:bg-gray-50 transition-colors group">
+                                                <td className="p-4 md:p-5">
+                                                    <div className="flex items-center gap-4">
+                                                        <img
+                                                            src={srv.image || "https://via.placeholder.com/150"}
+                                                            alt={srv.name}
+                                                            className="w-12 h-12 rounded-xl object-cover bg-gray-100 shrink-0"
+                                                        />
+                                                        <div>
+                                                            <p className="font-bold text-[#3F0D12]">{srv.name}</p>
+                                                            <p className="text-xs text-gray-500 line-clamp-1 max-w-[200px]">{srv.description}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 md:p-5">
+                                                    <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-bold">
+                                                        {catName}
+                                                    </span>
+                                                </td>
+                                                <td className="p-4 md:p-5">
+                                                    <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500">
+                                                        <Clock size={14} className="text-gray-400" /> {srv.duration_minutes} Mins
+                                                    </div>
+                                                </td>
+                                                <td className="p-4 md:p-5 font-black text-[#3F0D12]">
+                                                    ₹{srv.price}
+                                                </td>
+                                                <td className="p-4 md:p-5 text-right">
+                                                    <div className="flex items-center justify-end gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            onClick={() => handleEdit(srv)}
+                                                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl transition"
+                                                            title="Edit Service"
+                                                        >
+                                                            <Edit size={18} />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(srv.id)}
+                                                            className="p-2 text-red-500 hover:bg-red-50 rounded-xl transition"
+                                                            title="Delete Service"
+                                                        >
+                                                            <Trash2 size={18} />
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 )}
 

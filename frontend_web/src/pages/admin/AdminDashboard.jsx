@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getQueue, getEmployees } from '../../services/api';
+import { getAdminAnalytics } from '../../services/api';
 import {
     TrendingUp, Users, Clock, UserCheck,
     Briefcase, XCircle, CheckCircle,
@@ -9,25 +9,17 @@ import toast, { Toaster } from 'react-hot-toast';
 
 const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
-
-    // Data States
-    const [employees, setEmployees] = useState([]);
     const [dateFilter, setDateFilter] = useState(new Date().toISOString().slice(0, 10)); // Default Today
 
-    // Calculated Stats
-    const [metrics, setMetrics] = useState({
-        dailyRevenue: 0,
-        monthlyRevenue: 0,
-        totalTokens: 0,
-        waiting: 0,
-        upcoming: 0,
-        inService: 0,
-        cancelled: 0,
-        completed: 0,
-        walkIns: 0,
-        activeEmployees: 0,
-        busyEmployees: 0,
-        totalEmployees: 0
+    // Data States injected directly from Backend API
+    const [analytics, setAnalytics] = useState({
+        revenue: { daily: 0, monthly: 0 },
+        customer_flow: { pending: 0, in_progress: 0, completed: 0, cancelled: 0 },
+        staff_status: { total: 0, active: 0, busy: 0 },
+        source: { walk_ins: 0, online: 0 },
+        metrics: { total_tokens: 0 },
+        hourly_volume: [],
+        leaderboard: []
     });
 
     useEffect(() => {
@@ -37,58 +29,22 @@ const AdminDashboard = () => {
     const fetchDashboardData = async () => {
         setLoading(true);
         try {
-            // Fetch Bookings (Filtered by Date) & Employees
-            const [queueData, empData] = await Promise.all([
-                getQueue(dateFilter), // Pass Date to API
-                getEmployees()
-            ]);
-
-            setEmployees(empData);
-            calculateMetrics(queueData, empData);
-
+            const data = await getAdminAnalytics(dateFilter);
+            setAnalytics({
+                revenue: data.revenue || { daily: 0, monthly: 0 },
+                customer_flow: data.customer_flow || { pending: 0, in_progress: 0, completed: 0, cancelled: 0 },
+                staff_status: data.staff_status || { total: 0, active: 0, busy: 0 },
+                source: data.source || { walk_ins: 0, online: 0 },
+                metrics: data.metrics || { total_tokens: 0 },
+                hourly_volume: data.hourly_volume || [],
+                leaderboard: data.leaderboard || []
+            });
         } catch (error) {
             console.error(error);
-            // toast.error("Failed to load dashboard data");
+            toast.error("Failed to load dashboard analytics");
         } finally {
             setLoading(false);
         }
-    };
-
-    // 🔥 Calculate Stats on Frontend
-    const calculateMetrics = (data, emps) => {
-        // 1. Financials
-        const revenue = data
-            .filter(b => b.status === 'COMPLETED')
-            .reduce((sum, b) => sum + Number(b.total_price), 0);
-
-        // 2. Customer Flow
-        const waiting = data.filter(b => b.status === 'PENDING').length;
-        const inService = data.filter(b => b.status === 'IN_PROGRESS').length;
-        const completed = data.filter(b => b.status === 'COMPLETED').length;
-        const cancelled = data.filter(b => b.status === 'CANCELLED').length;
-
-        // 3. Employee Stats
-        const activeEmps = emps.filter(e => e.is_available).length;
-        // An employee is busy if they are assigned to an 'IN_PROGRESS' booking
-        const busyEmpsIds = new Set(data.filter(b => b.status === 'IN_PROGRESS' && b.employee).map(b => b.employee));
-        const busyEmpsCount = busyEmpsIds.size;
-
-        // 4. Walk-in Calculation
-        const walkInCount = data.filter(b => b.is_walk_in).length;
-
-        setMetrics({
-            dailyRevenue: revenue,
-            monthlyRevenue: revenue * 30, // Estimation
-            totalTokens: data.length,
-            waiting,
-            inService,
-            cancelled,
-            completed,
-            walkIns: walkInCount,
-            activeEmployees: activeEmps,
-            busyEmployees: busyEmpsCount,
-            totalEmployees: emps.length
-        });
     };
 
     return (
@@ -125,7 +81,7 @@ const AdminDashboard = () => {
                         <div className="absolute top-0 right-0 p-4 opacity-10"><DollarSign size={100} /></div>
                         <div className="relative z-10">
                             <p className="text-white/70 text-xs font-bold uppercase tracking-widest mb-1">Total Revenue</p>
-                            <h2 className="text-4xl font-black">₹{metrics.dailyRevenue.toLocaleString()}</h2>
+                            <h2 className="text-4xl font-black">₹{analytics.revenue.daily.toLocaleString()}</h2>
                             <div className="mt-4 flex items-center gap-2 text-sm text-green-300 bg-white/10 w-fit px-3 py-1 rounded-full">
                                 <TrendingUp size={16} /> Calculated for selected date
                             </div>
@@ -137,13 +93,13 @@ const AdminDashboard = () => {
                         <div className="flex justify-between items-start">
                             <div>
                                 <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Total Tokens</p>
-                                <h2 className="text-4xl font-black text-[#3F0D12] mt-1">{metrics.totalTokens}</h2>
+                                <h2 className="text-4xl font-black text-[#3F0D12] mt-1">{analytics.metrics.total_tokens}</h2>
                             </div>
                             <div className="bg-gray-100 p-3 rounded-xl text-[#3F0D12]"><FileTextIcon /></div>
                         </div>
                         <div className="mt-6 flex gap-4 text-xs font-bold text-gray-500">
-                            <span className="flex items-center gap-1"><CheckCircle size={14} className="text-green-600" /> {metrics.completed} Completed</span>
-                            <span className="flex items-center gap-1"><XCircle size={14} className="text-red-500" /> {metrics.cancelled} Cancelled</span>
+                            <span className="flex items-center gap-1"><CheckCircle size={14} className="text-green-600" /> {analytics.customer_flow.completed} Completed</span>
+                            <span className="flex items-center gap-1"><XCircle size={14} className="text-red-500" /> {analytics.customer_flow.cancelled} Cancelled</span>
                         </div>
                     </div>
 
@@ -154,19 +110,19 @@ const AdminDashboard = () => {
                             <div>
                                 <div className="flex justify-between text-sm font-bold mb-1 text-gray-700">
                                     <span>Walk-in</span>
-                                    <span>{metrics.walkIns}</span>
+                                    <span>{analytics.source.walk_ins}</span>
                                 </div>
                                 <div className="w-full bg-gray-100 rounded-full h-2.5">
-                                    <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${(metrics.walkIns / metrics.totalTokens) * 100 || 0}%` }}></div>
+                                    <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${(analytics.source.walk_ins / analytics.metrics.total_tokens) * 100 || 0}%` }}></div>
                                 </div>
                             </div>
                             <div>
                                 <div className="flex justify-between text-sm font-bold mb-1 text-gray-700">
                                     <span>Online Booking</span>
-                                    <span>{metrics.totalTokens - metrics.walkIns}</span>
+                                    <span>{analytics.source.online}</span>
                                 </div>
                                 <div className="w-full bg-gray-100 rounded-full h-2.5">
-                                    <div className="bg-purple-600 h-2.5 rounded-full" style={{ width: `${((metrics.totalTokens - metrics.walkIns) / metrics.totalTokens) * 100 || 0}%` }}></div>
+                                    <div className="bg-purple-600 h-2.5 rounded-full" style={{ width: `${(analytics.source.online / analytics.metrics.total_tokens) * 100 || 0}%` }}></div>
                                 </div>
                             </div>
                         </div>
@@ -184,7 +140,7 @@ const AdminDashboard = () => {
                         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
                             <div>
                                 <p className="text-xs text-gray-400 font-bold uppercase">Staff Online</p>
-                                <p className="text-2xl font-black text-[#3F0D12]">{metrics.activeEmployees} <span className="text-sm text-gray-400 font-normal">/ {metrics.totalEmployees}</span></p>
+                                <p className="text-2xl font-black text-[#3F0D12]">{analytics.staff_status.active} <span className="text-sm text-gray-400 font-normal">/ {analytics.staff_status.total}</span></p>
                             </div>
                             <div className="bg-green-100 p-2 rounded-lg text-green-700"><UserCheck size={24} /></div>
                         </div>
@@ -193,7 +149,7 @@ const AdminDashboard = () => {
                         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
                             <div>
                                 <p className="text-xs text-gray-400 font-bold uppercase">Busy Staff</p>
-                                <p className="text-2xl font-black text-orange-600">{metrics.busyEmployees}</p>
+                                <p className="text-2xl font-black text-orange-600">{analytics.staff_status.busy}</p>
                             </div>
                             <div className="bg-orange-100 p-2 rounded-lg text-orange-600"><ScissorsIcon /></div>
                         </div>
@@ -202,7 +158,7 @@ const AdminDashboard = () => {
                         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
                             <div>
                                 <p className="text-xs text-gray-400 font-bold uppercase">Waiting Area</p>
-                                <p className="text-2xl font-black text-[#3F0D12]">{metrics.waiting}</p>
+                                <p className="text-2xl font-black text-[#3F0D12]">{analytics.customer_flow.pending}</p>
                             </div>
                             <div className="bg-yellow-100 p-2 rounded-lg text-yellow-700"><Clock size={24} /></div>
                         </div>
@@ -211,42 +167,57 @@ const AdminDashboard = () => {
                         <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm flex items-center justify-between">
                             <div>
                                 <p className="text-xs text-gray-400 font-bold uppercase">In Service</p>
-                                <p className="text-2xl font-black text-blue-600">{metrics.inService}</p>
+                                <p className="text-2xl font-black text-blue-600">{analytics.customer_flow.in_progress}</p>
                             </div>
                             <div className="bg-blue-100 p-2 rounded-lg text-blue-700"><ChairIcon /></div>
                         </div>
                     </div>
                 </section>
 
-                {/* 3️⃣ CUSTOMER INFLOW PREDICTION (Visual) */}
+                {/* 3️⃣ EMPLOYEE PERFORMANCE LEADERBOARD */}
                 <section className="bg-white p-4 md:p-6 rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-2">
-                        <h3 className="font-bold text-md md:text-lg text-[#3F0D12]">Customer Volume (Hourly)</h3>
-                        <span className="bg-gray-100 text-gray-500 text-[10px] md:text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">Real-time</span>
+                        <h3 className="font-bold text-md md:text-lg text-[#3F0D12]">Employee Performance</h3>
+                        <span className="bg-gray-100 text-gray-500 text-[10px] md:text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap">Sorted by Revenue</span>
                     </div>
 
-                    {/* Visual Bars with x-axis scroll on extremely small devices */}
-                    <div className="overflow-x-auto pb-4 scrollbar-hide">
-                        <div className="min-w-[400px]">
-                            <div className="flex items-end justify-between h-32 gap-2">
-                                {[30, 45, 20, 60, 80, 50, 40, 70, 90, 60, 30, 20].map((h, i) => (
-                                    <div key={i} className="w-full bg-red-50 rounded-t-lg relative group">
-                                        <div
-                                            className="absolute bottom-0 left-0 w-full bg-[#3F0D12] rounded-t-lg transition-all duration-500 group-hover:bg-[#D72638]"
-                                            style={{ height: `${h}%` }}
-                                        ></div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="flex justify-between text-[10px] md:text-xs text-gray-400 font-bold mt-2 uppercase">
-                                <span>9 AM</span>
-                                <span>12 PM</span>
-                                <span>3 PM</span>
-                                <span>6 PM</span>
-                                <span>9 PM</span>
-                            </div>
+                    {analytics.leaderboard.length > 0 ? (
+                        <div className="space-y-3">
+                            {(() => {
+                                const maxWork = Math.max(...analytics.leaderboard.map(e => e.total_work), 1);
+                                return analytics.leaderboard.map((emp, i) => {
+                                    const widthPct = (emp.total_work / maxWork) * 100;
+                                    return (
+                                        <div key={i} className="flex items-center gap-3 group">
+                                            <div className="w-7 h-7 bg-[#3F0D12] rounded-full flex items-center justify-center text-white text-xs font-black shrink-0">
+                                                {i + 1}
+                                            </div>
+                                            <div className="flex-grow">
+                                                <div className="flex justify-between text-sm font-bold mb-1">
+                                                    <span className="text-gray-800 truncate">{emp.employee}</span>
+                                                    <span className="text-[#3F0D12] font-black whitespace-nowrap">₹{emp.total_work.toLocaleString()}</span>
+                                                </div>
+                                                <div className="w-full bg-gray-100 rounded-full h-2.5">
+                                                    <div
+                                                        className={`h-2.5 rounded-full transition-all duration-700 ${i === 0 ? 'bg-gradient-to-r from-[#3F0D12] to-[#D72638]' :
+                                                                i === 1 ? 'bg-gradient-to-r from-[#3F0D12] to-[#C19D6C]' :
+                                                                    'bg-[#3F0D12]/60'
+                                                            }`}
+                                                        style={{ width: `${widthPct}%` }}
+                                                    ></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                });
+                            })()}
                         </div>
-                    </div>
+                    ) : (
+                        <div className="text-center py-12 text-gray-400">
+                            <Users size={40} className="mx-auto text-gray-200 mb-3" />
+                            <p className="font-medium text-sm">No completed jobs for this date</p>
+                        </div>
+                    )}
                 </section>
 
             </div>

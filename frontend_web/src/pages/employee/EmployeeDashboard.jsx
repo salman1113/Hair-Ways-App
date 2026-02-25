@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
     LogOut, Calendar, Clock, IndianRupee, User, CheckCircle, Smartphone,
-    Home, BarChart2, Bell, Play, Check, Navigation, Star, FileText
+    Home, BarChart2, Bell, Play, Check, Navigation, Star, FileText, Plus, X, Scissors, Wallet, ExternalLink
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
     getEmployeeDashboard, updateEmployee, getEmployeeAnalytics,
     getMyEmployeeProfile, getEmployeeReviews, getEmployeeNotifications, getEmployeeAttendance,
-    startJob, finishJob
+    startJob, finishJob, getServices, createBooking, getMyPayoutHistory
 } from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -73,23 +73,32 @@ const EmployeeDashboard = () => {
     const [reviews, setReviews] = useState([]);
     const [notifications, setNotifications] = useState([]);
     const [attendance, setAttendance] = useState([]);
+    const [payouts, setPayouts] = useState([]);
 
     const [isAvailable, setIsAvailable] = useState(false);
     const [loading, setLoading] = useState(true);
     const [analyticsDate, setAnalyticsDate] = useState(new Date().toISOString().split('T')[0]);
+
+    // Walk-in Modal States
+    const [showWalkInModal, setShowWalkInModal] = useState(false);
+    const [servicesList, setServicesList] = useState([]);
+    const [walkInForm, setWalkInForm] = useState({ guest_name: '', guest_phone: '', service_ids: [] });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (user) {
             const available = user.employee_profile?.is_available ?? user.is_available ?? false;
             setIsAvailable(available);
             fetchDashboardData();
+            fetchServicesList();
+            if (!profile) fetchProfileData(); // Eagerly fetch for walk-In POS system
         }
     }, [user]);
 
     useEffect(() => {
         if (activeTab === 'analytics') fetchAnalytics();
-        if (activeTab === 'profile' && !profile) fetchProfileData();
         if (activeTab === 'inbox' && notifications.length === 0) fetchNotifications();
+        if (activeTab === 'wallet') fetchPayouts();
     }, [activeTab, analyticsDate]);
 
     // Data Fetching
@@ -110,6 +119,15 @@ const EmployeeDashboard = () => {
             setAnalytics(data);
         } catch (error) {
             console.error(error);
+        }
+    };
+
+    const fetchServicesList = async () => {
+        try {
+            const data = await getServices();
+            setServicesList(data);
+        } catch (error) {
+            console.error("Failed to fetch services", error);
         }
     };
 
@@ -171,6 +189,64 @@ const EmployeeDashboard = () => {
         }
     };
 
+    const handleCreateWalkIn = async (e) => {
+        e.preventDefault();
+        if (walkInForm.service_ids.length === 0) {
+            return toast.error("Please select at least one service!");
+        }
+
+        setIsSubmitting(true);
+        const toastId = toast.loading("Creating Walk-in Ticket...");
+
+        // Generate current time and date
+        const now = new Date();
+        const currentDate = now.toISOString().split('T')[0];
+        const currentTime = now.toTimeString().split(' ')[0]; // "14:30:00"
+
+        try {
+            const payload = {
+                booking_type: 'Walk-in',
+                is_walk_in: true,
+                guest_name: walkInForm.guest_name || 'Walk-in Guest',
+                guest_phone: walkInForm.guest_phone,
+                service_ids: walkInForm.service_ids,
+                booking_date: currentDate,
+                booking_time: currentTime,
+                employee: profile?.id || user.id
+            };
+
+            await createBooking(payload);
+            toast.success("Walk-in Ticket Created!", { id: toastId });
+            setShowWalkInModal(false);
+            setWalkInForm({ guest_name: '', guest_phone: '', service_ids: [] });
+            fetchDashboardData(); // Refresh queue immediately
+        } catch (error) {
+            console.error(error);
+            toast.error(error.response?.data?.error || "Failed to create ticket", { id: toastId });
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const fetchPayouts = async () => {
+        try {
+            const data = await getMyPayoutHistory();
+            setPayouts(data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const toggleServiceSelection = (id) => {
+        setWalkInForm(prev => {
+            if (prev.service_ids.includes(id)) {
+                return { ...prev, service_ids: prev.service_ids.filter(s => s !== id) };
+            } else {
+                return { ...prev, service_ids: [...prev.service_ids, id] };
+            }
+        });
+    };
+
     // --- RENDERERS ---
 
     const renderDashboard = () => (
@@ -208,10 +284,10 @@ const EmployeeDashboard = () => {
                             <>
                                 <div className="flex items-center gap-3 mb-2">
                                     <div className="w-10 h-10 bg-[#1A1A1A] rounded-full flex items-center justify-center text-[#C19D6C] font-bold text-sm uppercase shadow-inner">
-                                        {activeJob.customer_name ? activeJob.customer_name[0] : <User size={16} />}
+                                        {(() => { const name = activeJob.is_walk_in ? activeJob.guest_name : activeJob.customer_details?.username; return name ? name[0].toUpperCase() : <User size={16} />; })()}
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-[#1A1A1A]">{activeJob.customer_name || 'Walk-in Customer'}</h4>
+                                        <h4 className="font-bold text-[#1A1A1A]">{activeJob.is_walk_in ? (activeJob.guest_name || 'Walk-in Guest') : (activeJob.customer_details?.username || 'Online Customer')}</h4>
                                         <p className="text-xs text-gray-500 font-medium">{activeJob.items?.map(i => i.service?.name).join(', ') || 'Service'}</p>
                                     </div>
                                 </div>
@@ -235,11 +311,19 @@ const EmployeeDashboard = () => {
 
             {/* Queue List */}
             <div>
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-bold text-[#1A1A1A] flex items-center gap-2">
-                        <Calendar size={18} className="text-[#C19D6C]" /> Today's Queue
-                    </h2>
-                    <span className="text-xs font-bold text-[#1A1A1A] bg-gray-200 px-2 py-1 rounded-md">{dashboardData.queue?.filter(b => b.status !== 'IN_PROGRESS').length || 0} Up Next</span>
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-3 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-bold text-[#1A1A1A] flex items-center gap-2">
+                            <Calendar size={18} className="text-[#C19D6C]" /> Today's Queue
+                        </h2>
+                        <span className="text-xs font-bold text-[#1A1A1A] bg-gray-200 px-2 py-1 rounded-md">{dashboardData.queue?.filter(b => b.status !== 'IN_PROGRESS').length || 0} Up Next</span>
+                    </div>
+                    <button
+                        onClick={() => setShowWalkInModal(true)}
+                        className="w-full md:w-auto bg-[#1A1A1A] text-white px-4 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 text-sm shadow-md active:scale-95 transition-all"
+                    >
+                        <Plus size={16} /> New Walk-in
+                    </button>
                 </div>
 
                 <div className="space-y-4">
@@ -248,11 +332,18 @@ const EmployeeDashboard = () => {
                             <div key={booking.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-[#C19D6C]">
                                 <div className="flex justify-between items-start mb-4">
                                     <div className="flex items-center gap-3">
-                                        <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100">
+                                        <div className="bg-gray-50 p-2.5 rounded-xl border border-gray-100 relative">
                                             <Clock size={18} className="text-[#1A1A1A]" />
+                                            {/* Source Indicator dot */}
+                                            <span className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-white ${booking.is_walk_in ? 'bg-orange-500' : 'bg-blue-500'}`}></span>
                                         </div>
                                         <div>
-                                            <span className="text-base font-black text-[#1A1A1A] block">{booking.booking_time}</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-base font-black text-[#1A1A1A] block">{booking.booking_time}</span>
+                                                <span className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase tracking-wider ${booking.is_walk_in ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
+                                                    {booking.is_walk_in ? 'Walk-in' : 'Online'}
+                                                </span>
+                                            </div>
                                             <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Token #{booking.token_number}</span>
                                         </div>
                                     </div>
@@ -263,7 +354,7 @@ const EmployeeDashboard = () => {
 
                                 <div className="border-t border-gray-100 pt-4 flex items-center gap-4">
                                     <div className="flex-grow">
-                                        <h4 className="font-bold text-[#1A1A1A] text-sm md:text-base">{booking.customer_name || 'Walk-in Customer'}</h4>
+                                        <h4 className="font-bold text-[#1A1A1A] text-sm md:text-base">{booking.is_walk_in ? (booking.guest_name || 'Walk-in Guest') : (booking.customer_details?.username || 'Online Customer')}</h4>
                                         <p className="text-xs text-gray-500 font-medium truncate">{booking.items?.map(i => i.service?.name).join(', ') || 'Assigned Service'}</p>
                                     </div>
 
@@ -440,6 +531,149 @@ const EmployeeDashboard = () => {
         </div>
     );
 
+    const renderWalkInModal = () => (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl relative flex flex-col max-h-[90vh] animate-fade-in-up md:mt-0 mt-auto mb-10">
+                <div className="p-5 md:p-6 border-b flex justify-between items-center bg-gray-50 rounded-t-3xl shrink-0">
+                    <h2 className="text-xl md:text-2xl font-black text-[#1A1A1A] flex items-center gap-2">
+                        <Plus size={24} className="text-[#C19D6C]" /> Walk-In Ticket
+                    </h2>
+                    <button onClick={() => setShowWalkInModal(false)} className="text-gray-400 hover:text-black"><X size={24} /></button>
+                </div>
+
+                <form onSubmit={handleCreateWalkIn} className="p-4 md:p-6 overflow-y-auto w-full space-y-5">
+
+                    <div className="space-y-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                        <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">Guest Details</h3>
+                        <input
+                            type="text"
+                            placeholder="Guest Name (Optional)"
+                            className="w-full p-3.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#C19D6C] text-sm font-medium"
+                            value={walkInForm.guest_name}
+                            onChange={e => setWalkInForm({ ...walkInForm, guest_name: e.target.value })}
+                        />
+                        <input
+                            type="tel"
+                            placeholder="Phone Number (Optional)"
+                            className="w-full p-3.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-[#C19D6C] text-sm font-medium"
+                            value={walkInForm.guest_phone}
+                            onChange={e => setWalkInForm({ ...walkInForm, guest_phone: e.target.value })}
+                        />
+                    </div>
+
+                    <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-500">Select Services *</h3>
+                            <span className="text-[10px] font-bold text-[#C19D6C] bg-[#C19D6C]/10 px-2 py-0.5 rounded-md">
+                                {walkInForm.service_ids.length} Selected
+                            </span>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-200">
+                            {servicesList.length > 0 ? servicesList.map(srv => (
+                                <button
+                                    type="button"
+                                    key={srv.id}
+                                    onClick={() => toggleServiceSelection(srv.id)}
+                                    className={`flex justify-between items-center p-3 rounded-xl border text-left transition-all ${walkInForm.service_ids.includes(srv.id)
+                                        ? 'border-[#C19D6C] bg-[#C19D6C]/5 shadow-sm'
+                                        : 'border-gray-100 bg-white hover:border-gray-300'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-5 h-5 rounded-md border flex items-center justify-center ${walkInForm.service_ids.includes(srv.id) ? 'bg-[#C19D6C] border-[#C19D6C]' : 'border-gray-300 bg-white'
+                                            }`}>
+                                            {walkInForm.service_ids.includes(srv.id) && <Check size={12} strokeWidth={4} className="text-white" />}
+                                        </div>
+                                        <div>
+                                            <p className="font-bold text-sm text-[#1A1A1A]">{srv.name}</p>
+                                            <p className="text-[10px] font-medium text-gray-400">{srv.duration_minutes} Mins</p>
+                                        </div>
+                                    </div>
+                                    <span className="font-black text-[#1A1A1A]">₹{srv.price}</span>
+                                </button>
+                            )) : (
+                                <p className="text-xs text-center p-4 text-gray-500 bg-gray-50 rounded-xl border border-dashed">No services available</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Pre-calculated Total */}
+                    <div className="flex justify-between items-center bg-[#1A1A1A] text-white p-4 rounded-2xl shadow-lg mt-4">
+                        <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Total Price</span>
+                        <span className="text-2xl font-black text-[#C19D6C]">
+                            ₹{walkInForm.service_ids.reduce((total, id) => {
+                                const s = servicesList.find(srv => srv.id === id);
+                                return total + (s ? parseFloat(s.price) : 0);
+                            }, 0)}
+                        </span>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={isSubmitting || walkInForm.service_ids.length === 0}
+                        className="w-full py-4 bg-[#C19D6C] text-white rounded-xl font-black text-sm uppercase tracking-wide hover:bg-[#a6865c] transition shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+                    >
+                        {isSubmitting ? "Creating..." : "Create Walk-in Booking"}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+
+    const MEDIA_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace('/api/v1', '');
+
+    const renderWallet = () => (
+        <div className="space-y-6 animate-fade-in px-5">
+            {/* Pending Balance Card */}
+            <div className="bg-[#1A1A1A] p-6 rounded-3xl text-white text-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-3 opacity-10"><IndianRupee size={80} /></div>
+                <div className="relative z-10">
+                    <p className="text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Pending Balance</p>
+                    <h2 className="text-4xl font-black text-[#C19D6C]">₹{parseFloat(profile?.pending_wallet_balance || 0).toLocaleString()}</h2>
+                    <p className="text-white/40 text-[10px] mt-2 font-bold">Commission Rate: {profile?.commission_percentage || 50}%</p>
+                </div>
+            </div>
+
+            {/* Payout History */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="p-4 border-b border-gray-100">
+                    <h3 className="font-bold text-sm text-[#1A1A1A]">Payout History</h3>
+                </div>
+                {payouts.length > 0 ? (
+                    <div className="divide-y divide-gray-50">
+                        {payouts.map((p, i) => (
+                            <div key={p.id} className="flex items-center justify-between p-4">
+                                <div>
+                                    <p className="text-sm font-bold text-gray-800">₹{parseFloat(p.amount_paid).toLocaleString()}</p>
+                                    <p className="text-[10px] text-gray-400 font-medium">
+                                        {new Date(p.payment_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                    </p>
+                                </div>
+                                {p.screenshot ? (
+                                    <a
+                                        href={`${MEDIA_BASE}${p.screenshot}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 text-xs font-bold bg-blue-50 px-3 py-1.5 rounded-lg"
+                                    >
+                                        <ExternalLink size={12} /> Receipt
+                                    </a>
+                                ) : (
+                                    <span className="text-xs text-gray-300">No receipt</span>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="text-center py-12 text-gray-400">
+                        <Wallet size={32} className="mx-auto text-gray-200 mb-2" />
+                        <p className="text-xs font-medium">No payouts recorded yet</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+
     if (loading) {
         return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-500 font-medium">Booting Portal...</div>;
     }
@@ -457,29 +691,16 @@ const EmployeeDashboard = () => {
                         <LogOut size={16} className="text-white" />
                     </button>
                 </div>
-
-                {/* Availability Status Toggle */}
-                <div className="bg-white/5 backdrop-blur-xl p-3 rounded-2xl flex items-center justify-between border border-white/10">
-                    <div className="flex items-center gap-3">
-                        <div className={`w-2.5 h-2.5 rounded-full ${isAvailable ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)] animate-pulse' : 'bg-gray-500'}`}></div>
-                        <span className="font-bold text-xs tracking-wide">{isAvailable ? 'Accepting Bookings' : 'Currently Offline'}</span>
-                    </div>
-                    <button
-                        onClick={toggleAvailability}
-                        className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none ${isAvailable ? 'bg-green-500' : 'bg-gray-600'}`}
-                    >
-                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 shadow-md ${isAvailable ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
-                </div>
             </div>
 
-            {/* Dynamic Content */}
-            <div className="pt-6">
-                {activeTab === 'dashboard' && renderDashboard()}
-                {activeTab === 'analytics' && renderAnalytics()}
-                {activeTab === 'profile' && renderProfile()}
-                {activeTab === 'inbox' && renderInbox()}
-            </div>
+            {activeTab === 'dashboard' && renderDashboard()}
+            {activeTab === 'analytics' && renderAnalytics()}
+            {activeTab === 'profile' && renderProfile()}
+            {activeTab === 'wallet' && renderWallet()}
+            {activeTab === 'inbox' && renderInbox()}
+
+            {/* Modals */}
+            {showWalkInModal && renderWalkInModal()}
 
             {/* Sticky Bottom Navigation (Mobile SaaS Feel) */}
             <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-100 pb-safe z-50">
@@ -495,6 +716,10 @@ const EmployeeDashboard = () => {
                     <button onClick={() => setActiveTab('profile')} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'profile' ? 'text-[#C19D6C]' : 'text-gray-400'}`}>
                         <User size={22} strokeWidth={activeTab === 'profile' ? 2.5 : 2} />
                         <span className="text-[9px] font-bold uppercase tracking-wider">Profile</span>
+                    </button>
+                    <button onClick={() => setActiveTab('wallet')} className={`flex flex-col items-center gap-1 p-2 ${activeTab === 'wallet' ? 'text-[#C19D6C]' : 'text-gray-400'}`}>
+                        <Wallet size={22} strokeWidth={activeTab === 'wallet' ? 2.5 : 2} />
+                        <span className="text-[9px] font-bold uppercase tracking-wider">Wallet</span>
                     </button>
                     <button onClick={() => setActiveTab('inbox')} className={`flex flex-col items-center gap-1 p-2 relative ${activeTab === 'inbox' ? 'text-[#C19D6C]' : 'text-gray-400'}`}>
                         <div className="relative">

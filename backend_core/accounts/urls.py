@@ -7,7 +7,8 @@ from .views import (
     GoogleLoginApi, UserListApi,
     CustomLoginApi, VerifyRegistrationOTPApi, VerifyAdminLoginOTPApi,
     CustomTokenRefreshView,
-    MyEmployeeProfileApi, EmployeeReviewsApi, EmployeeNotificationsApi
+    MyEmployeeProfileApi, EmployeeReviewsApi, EmployeeNotificationsApi,
+    SettlePayoutApi, PayoutHistoryListApi
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -39,4 +40,9 @@ urlpatterns = [
     # Payroll
     path('payroll/', PayrollListApi.as_view(), name='payroll-list'),
     path('payroll/generate/', GeneratePayrollApi.as_view(), name='payroll-generate'),
+
+    # Payouts
+    path('employees/<int:pk>/settle-payout/', SettlePayoutApi.as_view(), name='settle-payout'),
+    path('employees/<int:pk>/payout-history/', PayoutHistoryListApi.as_view(), name='payout-history'),
+    path('employees/me/payout-history/', PayoutHistoryListApi.as_view(), name='my-payout-history'),
 ]

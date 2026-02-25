@@ -82,10 +82,26 @@ class BookingListCreateApi(APIView):
             
             # --- Assignment Logic ---
             if request.user.role == 'CUSTOMER':
-                 serializer.save(customer=request.user, is_walk_in=False, token_number=token)
+                 serializer.save(
+                     customer=request.user, 
+                     booking_type='Online',
+                     is_walk_in=False, 
+                     token_number=token,
+                     guest_name=''
+                 )
             else:
-                # Admin/Employee creating booking
-                serializer.save(token_number=token)
+                # Admin/Employee creating booking (Quick Add API)
+                guest_name = serializer.validated_data.get('guest_name', 'Walk-in Guest')
+                if not guest_name:
+                    guest_name = 'Walk-in Guest'
+                
+                serializer.save(
+                    customer=None,
+                    booking_type='Walk-in',
+                    is_walk_in=True,
+                    token_number=token,
+                    guest_name=guest_name
+                )
                 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -304,15 +320,14 @@ class EmployeeDashboardApi(APIView):
         completed = todays_jobs.filter(status='COMPLETED')
         pending = todays_jobs.filter(status__in=['PENDING', 'CONFIRMED', 'IN_PROGRESS']).order_by('booking_time')
         
-        today_commission = 0
+        today_earnings = 0
         for job in completed:
-            if profile.commission_rate > 0:
-                today_commission += (job.total_price * profile.commission_rate) / 100
+            today_earnings += job.total_price
 
         return Response({
             "employee": user.username,
             "wallet_balance": profile.wallet_balance,
-            "today_earnings": today_commission,
+            "today_earnings": today_earnings,
             "jobs_completed": completed.count(),
             "queue_length": pending.count(),
             "next_customer": BookingSerializer(pending.first()).data if pending.exists() else None,
@@ -338,8 +353,7 @@ class EmployeeAnalyticsApi(APIView):
         
         total_earnings = 0
         for job in completed:
-            if profile.commission_rate > 0:
-                total_earnings += (job.total_price * profile.commission_rate) / 100
+            total_earnings += job.total_price
                 
         walk_ins = queryset.filter(booking_type='Walk-in').count()
         online = queryset.filter(booking_type='Online').count()
@@ -352,16 +366,126 @@ class EmployeeAnalyticsApi(APIView):
             "total_earnings": total_earnings
         })
 
-class AdminStatsApi(APIView):
+class AdminAnalyticsApi(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        if request.user.role != 'ADMIN': return Response({"error": "Admin only"}, status=403)
-        today = timezone.now().date()
-        todays_bookings = Booking.objects.filter(booking_date=today)
+        if request.user.role != 'ADMIN':
+            return Response({"error": "Admin only"}, status=403)
+            
+        date_param = request.query_params.get('date')
+        if not date_param:
+            today_date = timezone.now().date()
+        else:
+            try:
+                today_date = datetime.strptime(date_param, '%Y-%m-%d').date()
+            except ValueError:
+                 today_date = timezone.now().date()
+                 
+        # 1. Total Base Queryset
+        all_bookings = Booking.objects.all()
+        
+        # 2. Today's Bookings
+        todays_bookings = all_bookings.filter(booking_date=today_date)
+        
+        # 3. Monthly Revenue
+        current_month = today_date.month
+        current_year = today_date.year
+        monthly_bookings = all_bookings.filter(
+            booking_date__month=current_month, 
+            booking_date__year=current_year,
+            status='COMPLETED'
+        )
+        monthly_rev = sum(b.total_price for b in monthly_bookings)
+        
+        # 4. Daily Revenue
+        daily_completed = todays_bookings.filter(status='COMPLETED')
+        daily_rev = sum(b.total_price for b in daily_completed)
+
+        # 5. Customer Flow
+        status_counts = {
+            'pending': todays_bookings.filter(status='PENDING').count(),
+            'in_progress': todays_bookings.filter(status='IN_PROGRESS').count(),
+            'completed': daily_completed.count(),
+            'cancelled': todays_bookings.filter(status='CANCELLED').count()
+        }
+        
+        # 6. Source
+        source = {
+            'walk_ins': todays_bookings.filter(is_walk_in=True).count(),
+            'online': todays_bookings.filter(is_walk_in=False).count()
+        }
+
+        # 7. Staff Status
+        from accounts.models import EmployeeProfile # inline import to avoid circular dep if any
+        emps = EmployeeProfile.objects.all()
+        total_staff = emps.count()
+        active_staff = emps.filter(is_available=True).count()
+        
+        busy_emps = set(todays_bookings.filter(status='IN_PROGRESS', employee__isnull=False).values_list('employee_id', flat=True))
+        busy_staff = len(busy_emps)
+
+        staff_status = {
+            'total': total_staff,
+            'active': active_staff,
+            'busy': busy_staff
+        }
+
+        # 8. Hourly Volume Chart Data
+        # Group bookings by hour of booking_time (for today)
+        hourly_groups = {}
+        for b in todays_bookings:
+            if b.booking_time:
+                # get HOUR format e.g 09, 14
+                hr = b.booking_time.hour
+                
+                # Format into 12H string: "9 AM", "2 PM"
+                ampm = "AM" if hr < 12 else "PM"
+                hr_12 = hr if hr <= 12 else hr - 12
+                if hr_12 == 0: hr_12 = 12
+                label = f"{hr_12} {ampm}"
+                
+                hourly_groups[label] = hourly_groups.get(label, 0) + 1
+        
+        # Sort hours somewhat logically (9 AM -> 9 PM)
+        # Note: A real implementation might enforce 0-24 sorting. For now we just return the dict mapped to a list.
+        # But recharts expects an array of objects.
+        
+        # Let's generate a fixed array of hours 9AM to 9PM to ensure chart always has axis data
+        hourly_volume = []
+        for h in range(9, 21): # 9 to 20 (8 PM)
+            hr_12 = h if h <= 12 else h - 12
+            ampm = "AM" if h < 12 else "PM"
+            label = f"{hr_12} {ampm}"
+            
+            hourly_volume.append({
+                "time": label,
+                "customers": hourly_groups.get(label, 0)
+            })
+
+        # 9. Employee Leaderboard
+        employee_performance = {}
+        for b in daily_completed:
+            if b.employee:
+                emp_name = b.employee.user.username
+                employee_performance[emp_name] = employee_performance.get(emp_name, 0) + float(b.total_price)
+        
+        leaderboard = [
+            {"employee": name, "total_work": amount} 
+            for name, amount in sorted(employee_performance.items(), key=lambda item: item[1], reverse=True)
+        ]
+
         return Response({
-            "total_revenue": sum(b.total_price for b in todays_bookings),
-            "active_customers": todays_bookings.filter(status='IN_PROGRESS').count(),
-            "pending_queue": todays_bookings.filter(status='PENDING').count(),
-            "completed_today": todays_bookings.filter(status='COMPLETED').count()
+            "revenue": {
+                "daily": daily_rev,
+                "monthly": monthly_rev
+            },
+            "customer_flow": status_counts,
+            "source": source,
+            "staff_status": staff_status,
+            "metrics": {
+                "total_tokens": todays_bookings.count()
+            },
+            "hourly_volume": hourly_volume,
+            "leaderboard": leaderboard
         })
