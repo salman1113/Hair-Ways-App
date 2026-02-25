@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import Footer from '../components/Footer';
+
 
 const GalleryPage = () => {
     // API Data State (Empty placeholder for now, integrate with API later)
@@ -46,7 +46,7 @@ const GalleryPage = () => {
 
             </div>
 
-            <Footer />
+
         </div>
     );
 };

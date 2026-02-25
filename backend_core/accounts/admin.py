@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, EmployeeProfile, CustomerProfile, Payroll, Attendance
+from .models import User, EmployeeProfile, CustomerProfile, Payroll, Attendance, Review, Notification
 from .forms import CustomUserCreationForm, CustomUserChangeForm
 
 class EmployeeProfileInline(admin.StackedInline):
@@ -50,3 +50,11 @@ class PayrollAdmin(admin.ModelAdmin):
 @admin.register(Attendance)
 class AttendanceAdmin(admin.ModelAdmin):
     list_display = ('employee', 'date', 'check_in', 'check_out', 'is_late')
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ('employee', 'customer_name', 'rating', 'created_at')
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ('employee', 'is_read', 'created_at')

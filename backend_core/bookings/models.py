@@ -23,7 +23,13 @@ class Booking(models.Model):
         ('CANCELLED', 'Cancelled'),
     )
 
+    BOOKING_TYPE_CHOICES = (
+        ('Online', 'Online'),
+        ('Walk-in', 'Walk-in'),
+    )
+
     customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='bookings', null=True, blank=True)
+    booking_type = models.CharField(max_length=20, choices=BOOKING_TYPE_CHOICES, default='Online')
     guest_name = models.CharField(max_length=100, blank=True, null=True, default="Walk-in Guest")
     guest_phone = models.CharField(max_length=15, blank=True, null=True)
     is_walk_in = models.BooleanField(default=False)

@@ -146,3 +146,34 @@ class Payroll(models.Model):
 
     def __str__(self):
         return f"Payroll {self.employee.user.username} - {self.month.strftime('%B %Y')}"
+
+class Review(models.Model):
+    """
+    Customer Reviews for explicit Stylists/Employees.
+    """
+    employee = models.ForeignKey(EmployeeProfile, on_delete=models.CASCADE, related_name='reviews')
+    customer_name = models.CharField(max_length=100)
+    rating = models.DecimalField(max_digits=3, decimal_places=1, default=5.0)
+    comment = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Review for {self.employee.user.username} - {self.rating} stars"
+
+class Notification(models.Model):
+    """
+    Internal push/alert system messages for Employees originating from Admin or System.
+    """
+    employee = models.ForeignKey(EmployeeProfile, on_delete=models.CASCADE, related_name='notifications')
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Notification for {self.employee.user.username} - Read: {self.is_read}"

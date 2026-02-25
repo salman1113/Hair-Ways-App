@@ -6,6 +6,7 @@ import { useAuth } from './context/AuthContext';
 import IntroScreen from './components/IntroScreen';
 import Loader from './components/Loader';
 import Navbar from './components/Navbar';
+import Footer from './components/Footer';
 import AdminLayout from './components/AdminLayout'; // 🔥 New Layout
 import CustomerChatWidget from './components/CustomerChatWidget';
 
@@ -72,10 +73,13 @@ const AppContent = () => {
     return children;
   };
 
-  // 🛡️ Redirect authenticated admins from the homepage to the dashboard
+  // 🛡️ Redirect authenticated users properly
   const HomeOrAdminRedirect = () => {
     if (user && (user.role === 'ADMIN' || user.role === 'MANAGER')) {
       return <Navigate to="/admin" replace />;
+    }
+    if (user && user.role === 'EMPLOYEE') {
+      return <Navigate to="/employee" replace />;
     }
     return <HomePage />;
   };
@@ -91,43 +95,46 @@ const AppContent = () => {
 
       {/* ... rest of the code ... */}
 
-      <div className={`transition-opacity duration-500 pb-24 md:pb-0 ${pageLoading ? "opacity-0" : "opacity-100"}`}>
-        <Routes>
-          {/* Public */}
-          <Route path="/" element={<HomeOrAdminRedirect />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route path="/verify-email" element={<OTPVerificationPage />} />
-          <Route path="/admin/verify" element={<OTPVerificationPage />} />
-          <Route path="/services" element={<ServicesPage />} />
-          <Route path="/services/:id" element={<ServiceDetails />} />
-          <Route path="/ai-stylist" element={<AiStylistPage />} /> {/* 🔥 AI Stylist Route */}
-          <Route path="/gallery" element={<GalleryPage />} />
-          <Route path="/reviews" element={<ReviewsPage />} /> {/* 🔥 Reviews Route */}
-          <Route path="/about" element={<AboutPage />} />
+      <div className={`flex flex-col min-h-screen transition-opacity duration-500 relative ${pageLoading ? "opacity-0" : "opacity-100"}`}>
+        <main className="flex-grow flex flex-col relative w-full">
+          <Routes>
+            {/* Public */}
+            <Route path="/" element={<HomeOrAdminRedirect />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/verify-email" element={<OTPVerificationPage />} />
+            <Route path="/admin/verify" element={<OTPVerificationPage />} />
+            <Route path="/services" element={<ServicesPage />} />
+            <Route path="/services/:id" element={<ServiceDetails />} />
+            <Route path="/ai-stylist" element={<AiStylistPage />} /> {/* 🔥 AI Stylist Route */}
+            <Route path="/gallery" element={<GalleryPage />} />
+            <Route path="/reviews" element={<ReviewsPage />} /> {/* 🔥 Reviews Route */}
+            <Route path="/about" element={<AboutPage />} />
 
-          {/* Catch-all 404 */}
-          <Route path="*" element={<NotFoundPage />} />
-          <Route path="/team" element={<TeamPage />} />
-          <Route path="/team/:id" element={<BarberDetails />} /> {/* 🔥 Dynamic Route */}
+            {/* Catch-all 404 */}
+            <Route path="*" element={<NotFoundPage />} />
+            <Route path="/team" element={<TeamPage />} />
+            <Route path="/team/:id" element={<BarberDetails />} /> {/* 🔥 Dynamic Route */}
 
-          {/* Customer */}
-          <Route path="/book" element={<BookingPage />} />
-          <Route path="/success" element={<BookingSuccessPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
+            {/* Customer */}
+            <Route path="/book" element={<BookingPage />} />
+            <Route path="/success" element={<BookingSuccessPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
 
-          {/* 🔥 NEW NESTED ADMIN ROUTES */}
-          <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
-            <Route index element={<AdminDashboard />} /> {/* Main Dashboard */}
-            <Route path="services" element={<AdminServices />} />
-            <Route path="employees" element={<AdminEmployees />} />
-            <Route path="inventory" element={<AdminInventory />} />
-            <Route path="bookings" element={<AdminBookings />} />
-          </Route>
+            {/* 🔥 NEW NESTED ADMIN ROUTES */}
+            <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+              <Route index element={<AdminDashboard />} /> {/* Main Dashboard */}
+              <Route path="services" element={<AdminServices />} />
+              <Route path="employees" element={<AdminEmployees />} />
+              <Route path="inventory" element={<AdminInventory />} />
+              <Route path="bookings" element={<AdminBookings />} />
+            </Route>
 
-          {/* Employee */}
-          <Route path="/employee/*" element={<EmployeeRoute><EmployeeDashboard /></EmployeeRoute>} />
-        </Routes>
+            {/* Employee */}
+            <Route path="/employee/*" element={<EmployeeRoute><EmployeeDashboard /></EmployeeRoute>} />
+          </Routes>
+        </main>
+        {!isDashboard && <Footer />}
       </div>
     </>
   );

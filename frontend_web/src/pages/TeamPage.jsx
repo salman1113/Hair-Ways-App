@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Instagram, Twitter, Linkedin, Scissors, Plus } from 'lucide-react';
-import Footer from '../components/Footer';
+
 
 // --- ANIMATION VARIANTS ---
 const fadeInUp = {
@@ -63,7 +63,7 @@ const TeamPage = () => {
 
                 <div className="relative z-10 text-center text-white px-6">
                     <motion.div initial="hidden" animate="visible" variants={staggerContainer}>
-                        <motion.h1 variants={fadeInUp} className="text-5xl md:text-7xl font-bold mb-2 tracking-tight">
+                        <motion.h1 variants={fadeInUp} className="text-4xl md:text-7xl font-bold mb-2 tracking-tight">
                             Expert barbers
                         </motion.h1>
                     </motion.div>
@@ -93,7 +93,7 @@ const TeamPage = () => {
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.9 }}
                                         transition={{ duration: 0.4 }}
-                                        className="group relative h-[500px] rounded-3xl overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-shadow duration-500"
+                                        className="group relative h-[400px] md:h-[500px] rounded-3xl overflow-hidden cursor-pointer shadow-lg hover:shadow-2xl transition-shadow duration-500"
                                     >
                                         <Link to={`/team/${member.id}`} className="block h-full w-full bg-gray-100">
                                             {/* Image */}
@@ -133,7 +133,7 @@ const TeamPage = () => {
             </section>
 
             {/* ================= 3. FOOTER ================= */}
-            <Footer />
+
 
         </div>
     );

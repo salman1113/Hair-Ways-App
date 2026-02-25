@@ -5,11 +5,12 @@ from django.contrib.auth import get_user_model
 from django.contrib import auth
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
-from .models import EmployeeProfile, Attendance, Payroll
+from .models import EmployeeProfile, Attendance, Payroll, Review, Notification
 from .serializers import (
     UserSerializer, EmployeeProfileSerializer, AttendanceSerializer, 
     EmployeeCreationSerializer, UserRegistrationSerializer, PayrollSerializer,
-    GoogleLoginSerializer, LoginSerializer, VerifyOTPSerializer
+    GoogleLoginSerializer, LoginSerializer, VerifyOTPSerializer,
+    ReviewSerializer, NotificationSerializer
 )
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -335,6 +336,38 @@ class EmployeeDetailApi(APIView):
         user = profile.user
         user.delete() # Hard delete user
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+class MyEmployeeProfileApi(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if not hasattr(user, 'employee_profile'):
+            return Response({"error": "Not an employee"}, status=403)
+        serializer = EmployeeProfileSerializer(user.employee_profile)
+        return Response(serializer.data)
+
+class EmployeeReviewsApi(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if not hasattr(user, 'employee_profile'):
+            return Response({"error": "Not an employee"}, status=403)
+        queryset = Review.objects.filter(employee=user.employee_profile).order_by('-created_at')
+        serializer = ReviewSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+class EmployeeNotificationsApi(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if not hasattr(user, 'employee_profile'):
+            return Response({"error": "Not an employee"}, status=403)
+        queryset = Notification.objects.filter(employee=user.employee_profile).order_by('-created_at')
+        serializer = NotificationSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 # --- ATTENDANCE APIS ---
 

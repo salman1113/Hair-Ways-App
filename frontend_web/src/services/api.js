@@ -193,6 +193,27 @@ export const getEmployeeDashboard = async () => {
   return response.data;
 };
 
+export const getEmployeeAnalytics = async (date) => {
+  const url = date ? `/bookings/employee/analytics/?date=${date}` : '/bookings/employee/analytics/';
+  const response = await api.get(url);
+  return response.data;
+};
+
+export const getMyEmployeeProfile = async () => {
+  const response = await api.get('/accounts/employees/me/');
+  return response.data;
+};
+
+export const getEmployeeReviews = async () => {
+  const response = await api.get('/accounts/employees/me/reviews/');
+  return response.data;
+};
+
+export const getEmployeeNotifications = async () => {
+  const response = await api.get('/accounts/employees/me/notifications/');
+  return response.data;
+};
+
 
 // --- BOOKINGS ---
 export const createBooking = async (bookingData) => {

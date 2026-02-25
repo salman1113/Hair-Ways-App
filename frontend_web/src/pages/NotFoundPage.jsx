@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import Footer from '../components/Footer';
+
 
 const NotFoundPage = () => {
     return (
@@ -49,7 +49,7 @@ const NotFoundPage = () => {
                 </div>
             </section>
 
-            <Footer />
+
         </div>
     );
 };

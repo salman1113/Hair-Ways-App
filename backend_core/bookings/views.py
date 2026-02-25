@@ -319,6 +319,39 @@ class EmployeeDashboardApi(APIView):
             "queue": BookingSerializer(pending, many=True).data
         })
 
+class EmployeeAnalyticsApi(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if not hasattr(user, 'employee_profile'):
+            return Response({"error": "Not an employee"}, status=403)
+        
+        profile = user.employee_profile
+        date_param = request.query_params.get('date')
+        
+        queryset = Booking.objects.filter(employee=profile)
+        if date_param:
+            queryset = queryset.filter(booking_date=date_param)
+            
+        completed = queryset.filter(status='COMPLETED')
+        
+        total_earnings = 0
+        for job in completed:
+            if profile.commission_rate > 0:
+                total_earnings += (job.total_price * profile.commission_rate) / 100
+                
+        walk_ins = queryset.filter(booking_type='Walk-in').count()
+        online = queryset.filter(booking_type='Online').count()
+
+        return Response({
+            "total_bookings": queryset.count(),
+            "completed_jobs": completed.count(),
+            "walk_ins": walk_ins,
+            "online": online,
+            "total_earnings": total_earnings
+        })
+
 class AdminStatsApi(APIView):
     permission_classes = [permissions.IsAuthenticated]
 

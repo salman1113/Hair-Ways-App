@@ -74,10 +74,10 @@ const ServicesPage = () => {
             <motion.p variants={fadeInUp} className="text-[#C19D6C] font-bold uppercase tracking-widest text-xs mb-4">
               World Class Grooming
             </motion.p>
-            <motion.h1 variants={fadeInUp} className="text-5xl md:text-7xl font-bold mb-6 tracking-tight">
+            <motion.h1 variants={fadeInUp} className="text-4xl md:text-7xl font-bold mb-6 tracking-tight">
               Our Services
             </motion.h1>
-            <motion.p variants={fadeInUp} className="text-gray-400 text-lg max-w-2xl mx-auto">
+            <motion.p variants={fadeInUp} className="text-gray-400 text-base md:text-lg max-w-2xl mx-auto">
               From classic cuts to modern styling, we offer a comprehensive range of services designed to help you look and feel your absolute best.
             </motion.p>
           </motion.div>
@@ -106,7 +106,7 @@ const ServicesPage = () => {
           <div className="space-y-4">
             <motion.div variants={fadeInUp} initial="hidden" animate="visible" className="mb-8">
               <span className="text-[#C19D6C] font-bold uppercase tracking-widest text-xs mb-2 block">Our Expertise</span>
-              <h2 className="text-4xl font-bold">A pure range of luxury <br />salon services</h2>
+              <h2 className="text-3xl md:text-4xl font-bold">A pure range of luxury <br className="hidden md:block" />salon services</h2>
             </motion.div>
 
             {loading ? (
@@ -187,7 +187,7 @@ const ServicesPage = () => {
             <motion.div variants={fadeInUp} className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#C19D6C]/10 text-[#C19D6C] text-xs font-bold uppercase tracking-wider w-fit">
               Why Choose Us
             </motion.div>
-            <motion.h2 variants={fadeInUp} className="text-4xl font-bold leading-tight">
+            <motion.h2 variants={fadeInUp} className="text-3xl md:text-4xl font-bold leading-tight">
               Experience the art of grooming with unmatched care.
             </motion.h2>
             <motion.p variants={fadeInUp} className="text-gray-600">
@@ -228,14 +228,14 @@ const ServicesPage = () => {
             <motion.span variants={fadeInUp} className="bg-white/10 backdrop-blur-md px-4 py-1 rounded-full text-xs font-bold text-[#C19D6C] uppercase tracking-widest border border-white/10">
               Call to Action
             </motion.span>
-            <motion.h2 variants={fadeInUp} className="text-4xl md:text-5xl font-bold text-white mt-6 mb-8 leading-tight">
+            <motion.h2 variants={fadeInUp} className="text-3xl md:text-5xl font-bold text-white mt-6 mb-8 leading-tight">
               Book your spot today & step out looking your best.
             </motion.h2>
             <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/book" className="px-8 py-4 bg-[#C19D6C] text-black font-bold rounded-xl hover:bg-white transition duration-300">
+              <Link to="/book" className="px-8 py-4 bg-[#C19D6C] text-black font-bold rounded-xl hover:bg-white transition duration-300 w-full sm:w-auto">
                 Book Your Slot
               </Link>
-              <button className="px-8 py-4 bg-white/10 backdrop-blur-md text-white font-bold rounded-xl border border-white/20 hover:bg-white hover:text-black transition duration-300">
+              <button className="px-8 py-4 bg-white/10 backdrop-blur-md text-white font-bold rounded-xl border border-white/20 hover:bg-white hover:text-black transition duration-300 w-full sm:w-auto">
                 info@hairways.com
               </button>
             </motion.div>
@@ -321,7 +321,6 @@ const ServicesPage = () => {
       </section>
 
       {/* ================= 5. FOOTER ================= */}
-      <Footer />
 
     </div>
   );

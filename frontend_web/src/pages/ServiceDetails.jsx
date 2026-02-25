@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, CheckCircle, Clock, ShieldCheck, Star } from 'lucide-react';
-import Footer from '../components/Footer';
+
 
 const ServiceDetails = () => {
     const { id } = useParams();
@@ -112,7 +112,7 @@ const ServiceDetails = () => {
 
             </div>
 
-            <Footer />
+
         </div>
     );
 };

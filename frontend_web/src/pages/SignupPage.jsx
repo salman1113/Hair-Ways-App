@@ -46,7 +46,7 @@ const SignupPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-white p-4 md:p-0">
-      <div className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[700px] animate-fade-in border border-gray-100">
+      <div className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[600px] md:min-h-[700px] animate-fade-in border border-gray-100">
 
         {/* Left Side - Dark Image Panel */}
         <div className="w-full md:w-1/2 relative hidden md:block">
@@ -67,7 +67,7 @@ const SignupPage = () => {
         </div>
 
         {/* Right Side - Form */}
-        <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+        <div className="w-full md:w-1/2 p-6 md:p-12 flex flex-col justify-center">
           <div className="max-w-md mx-auto w-full">
             <h2 className="text-3xl font-bold text-[#1A1A1A] mb-2">Create Account</h2>
             <p className="text-gray-500 mb-6">Begin your journey with Hair Ways</p>

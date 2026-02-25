@@ -2,7 +2,6 @@ import React, { useRef, useState, useEffect } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Star, Phone, ArrowRight, Scissors, CheckCircle, Calendar, User, MapPin, Instagram, Facebook, Twitter, Minus, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import Footer from '../components/Footer';
 
 // --- ANIMATION VARIANTS ---
 const fadeInUp = {
@@ -68,14 +67,14 @@ const HomePage = () => {
       <section className="relative min-h-screen flex items-center bg-[#0B0B0B] text-white overflow-hidden">
 
         {/* ABSOLUTE HERO IMAGE (Right Side - Blended) */}
-        <div className="absolute top-18 right-0 w-full lg:w-[60%] h-full z-10 block">
+        <div className="absolute top-0 md:top-18 right-0 w-full lg:w-[60%] h-full z-10 block opacity-50 lg:opacity-90">
           <img
             src="/IMG_6803.PNG"
-            className="w-full h-full object-cover object-center opacity-90"
+            className="w-full h-full object-cover object-center"
             alt="Hero Model"
           />
           {/* Gradient Overlays for smooth blending */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0B0B0B] via-[#0B0B0B]/40 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-[#0B0B0B] via-[#0B0B0B]/70 lg:via-[#0B0B0B]/40 to-transparent"></div>
           <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#0B0B0B] to-transparent"></div>
         </div>
 
@@ -115,11 +114,11 @@ const HomePage = () => {
               </div>
             </motion.div>
 
-            <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Link to="/book" className="px-8 py-4 bg-[#C19D6C] hover:bg-[#a38355] text-black font-bold text-base rounded-full transition flex items-center justify-center gap-2 group">
+            <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4 pt-4 mt-8">
+              <Link to="/book" className="px-8 py-4 bg-[#C19D6C] hover:bg-[#a38355] text-black font-bold text-base rounded-full transition flex items-center justify-center gap-2 group w-full sm:w-auto">
                 Book Your Spot <ArrowRight size={18} className="group-hover:translate-x-1 transition" />
               </Link>
-              <div className="flex items-center gap-3 px-6 py-4 border border-white/10 rounded-full hover:bg-white/5 transition cursor-pointer">
+              <div className="flex items-center gap-3 px-6 py-4 border border-white/20 bg-white/5 rounded-full hover:bg-white/10 transition cursor-pointer justify-center w-full sm:w-auto">
                 <div className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center">
                   <Phone size={18} className="text-white" />
                 </div>
@@ -165,12 +164,12 @@ const HomePage = () => {
                 key={idx}
                 initial="hidden"
                 whileInView="visible"
-                viewport={{ once: true }}
+                viewport={{ once: true, margin: "-50px" }}
                 variants={{
-                  hidden: { opacity: 0, y: 50 },
+                  hidden: { opacity: 0, y: 30 },
                   visible: { opacity: 1, y: 0, transition: { duration: 0.8, delay: item.delay } }
                 }}
-                className={`relative rounded-3xl overflow-hidden group h-[400px] md:h-full ${idx === 1 ? 'md:mt-12' : ''}`}
+                className={`relative rounded-3xl overflow-hidden group h-[300px] md:h-[400px] lg:h-full ${idx === 1 ? 'md:mt-12' : ''}`}
               >
                 <img src={item.img} className="w-full h-full object-cover group-hover:scale-110 transition duration-700" alt={item.title} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80"></div>
@@ -197,7 +196,7 @@ const HomePage = () => {
             whileInView="visible"
             viewport={{ once: true }}
             variants={fadeLeft}
-            className="relative rounded-3xl overflow-hidden h-[600px] shadow-2xl group"
+            className="relative rounded-3xl overflow-hidden h-[400px] md:h-[600px] shadow-2xl group w-full"
           >
             <img src="https://images.unsplash.com/photo-1622286342621-4bd786c2447c?q=80&w=2070&auto=format&fit=crop" className="w-full h-full object-cover group-hover:scale-105 transition duration-700" alt="Services" />
             <div className="absolute top-6 left-6 bg-white px-4 py-2 rounded-full text-sm font-bold text-black shadow-lg flex items-center gap-2">
@@ -237,7 +236,7 @@ const HomePage = () => {
               )}
             </div>
 
-            <motion.div variants={fadeInUp} className="mt-8">
+            <motion.div variants={fadeInUp} className="mt-8 text-center lg:text-left">
               <Link to="/services" className="text-black font-bold border-b-2 border-black pb-1 hover:text-[#C19D6C] hover:border-[#C19D6C] transition">See All Services</Link>
             </motion.div>
           </motion.div>
@@ -297,12 +296,12 @@ const HomePage = () => {
             <motion.div variants={fadeInUp} className="inline-block px-4 py-1 border border-[#C19D6C] text-[#C19D6C] rounded-full text-xs font-bold uppercase mb-4">
               Book With Us
             </motion.div>
-            <motion.h2 variants={fadeInUp} className="text-4xl md:text-5xl font-bold text-white mb-8">
-              Book your spot today & step out looking your best.
+            <motion.h2 variants={fadeInUp} className="text-3xl md:text-5xl font-bold text-white mb-8">
+              Book your spot today <br className="hidden md:block" /> & step out looking your best.
             </motion.h2>
             <motion.div variants={fadeInUp} className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/book" className="px-8 py-3 bg-[#C19D6C] text-black font-bold rounded-full hover:bg-white transition">Book Your Spot</Link>
-              <button className="px-8 py-3 bg-transparent border border-white text-white font-bold rounded-full hover:bg-white hover:text-black transition">Contact Us</button>
+              <Link to="/book" className="px-8 py-4 bg-[#C19D6C] text-black font-bold rounded-full hover:bg-white transition flex items-center justify-center w-full sm:w-auto">Book Your Spot</Link>
+              <button className="px-8 py-4 bg-transparent border border-white text-white font-bold rounded-full hover:bg-white hover:text-black transition w-full sm:w-auto">Contact Us</button>
             </motion.div>
           </motion.div>
         </div>
@@ -369,7 +368,6 @@ const HomePage = () => {
       </section>
 
       {/* ================= 8. FOOTER ================= */}
-      <Footer />
 
     </div>
   );

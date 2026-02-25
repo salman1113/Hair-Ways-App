@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Scissors, Star, CheckCircle, ArrowRight, ShieldCheck, UserCheck, Armchair, Plus, Minus, Instagram, Facebook, Twitter, MapPin, Mail, Phone } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import Footer from '../components/Footer';
 
 // --- ANIMATION VARIANTS ---
 const fadeInUp = {
@@ -56,7 +55,7 @@ const AboutPage = () => {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1 }}
-            className="text-6xl md:text-8xl font-bold text-white tracking-tight"
+            className="text-5xl md:text-8xl font-bold text-white tracking-tight"
           >
             About salon
           </motion.h1>
@@ -114,10 +113,10 @@ const AboutPage = () => {
             className="space-y-8"
           >
             <motion.span variants={fadeInUp} className="text-[#C19D6C] font-bold uppercase tracking-widest text-xs">Who We Are</motion.span>
-            <motion.h2 variants={fadeInUp} className="text-4xl md:text-5xl font-bold leading-tight text-[#1A1A1A]">
+            <motion.h2 variants={fadeInUp} className="text-3xl md:text-5xl font-bold leading-tight text-[#1A1A1A]">
               More than a cut, it's an experience.
             </motion.h2>
-            <motion.p variants={fadeInUp} className="text-gray-600 text-lg leading-relaxed">
+            <motion.p variants={fadeInUp} className="text-gray-600 text-base md:text-lg leading-relaxed">
               We believe grooming is more than just a routine—it's a ritual. At Hair Ways, we combine traditional barbering techniques with modern style to give you the confidence you deserve.
             </motion.p>
 
@@ -165,13 +164,13 @@ const AboutPage = () => {
               <motion.div
                 key={idx}
                 variants={fadeInUp}
-                className={`p - 8 rounded - 3xl border border - gray - 100 transition duration - 300 hover: shadow - xl group ${idx === 1 || idx === 2 ? 'bg-[#1A1A1A] text-white' : 'bg-white text-black'} `}
+                className={`p-8 rounded-3xl border border-gray-100 transition duration-300 hover:shadow-xl group ${idx === 1 || idx === 2 ? 'bg-[#1A1A1A] text-white' : 'bg-white text-black'}`}
               >
-                <div className={`w - 14 h - 14 rounded - full flex items - center justify - center mb - 6 text - 2xl ${idx === 1 || idx === 2 ? 'bg-white/10 text-[#C19D6C]' : 'bg-[#C19D6C]/10 text-[#C19D6C]'} `}>
+                <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-6 text-2xl ${idx === 1 || idx === 2 ? 'bg-white/10 text-[#C19D6C]' : 'bg-[#C19D6C]/10 text-[#C19D6C]'}`}>
                   <item.icon size={28} />
                 </div>
                 <h3 className="text-xl font-bold mb-3 group-hover:text-[#C19D6C] transition">{item.title}</h3>
-                <p className={`text - sm leading - relaxed ${idx === 1 || idx === 2 ? 'text-gray-400' : 'text-gray-500'} `}>{item.desc}</p>
+                <p className={`text-sm leading-relaxed ${idx === 1 || idx === 2 ? 'text-gray-400' : 'text-gray-500'}`}>{item.desc}</p>
               </motion.div>
             ))}
           </motion.div>
@@ -238,14 +237,14 @@ const AboutPage = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <span className="text-[#C19D6C] font-bold uppercase tracking-widest text-xs mb-2 block p-1 px-3 border border-[#C19D6C] rounded-full w-fit mx-auto">Open Hours</span>
-            <h2 className="text-4xl md:text-5xl font-bold mt-4">Look sharp, anytime <br /> working hours</h2>
+            <h2 className="text-3xl md:text-5xl font-bold mt-4">Look sharp, anytime <br className="hidden md:block" /> working hours</h2>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-16 border-b border-white/10 pb-16">
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => (
-              <div key={i} className={`text - center p - 4 rounded - xl border ${i === 6 ? 'border-[#C19D6C] bg-[#C19D6C]/10' : 'border-white/10 bg-white/5'} hover: bg - [#C19D6C] hover: border - [#C19D6C] hover: text - white transition group cursor - pointer`}>
+              <div key={i} className={`text-center p-4 rounded-xl border ${i === 6 ? 'border-[#C19D6C] bg-[#C19D6C]/10' : 'border-white/10 bg-white/5'} hover:bg-[#C19D6C] hover:border-[#C19D6C] hover:text-white transition group cursor-pointer`}>
                 <h4 className="font-bold text-lg mb-1 group-hover:text-black transition">{day}</h4>
-                <p className={`text - xs uppercase tracking - wider group - hover: text - black transition ${i === 6 ? 'text-[#C19D6C]' : 'text-gray-400'} `}>
+                <p className={`text-xs uppercase tracking-wider group-hover:text-black transition ${i === 6 ? 'text-[#C19D6C]' : 'text-gray-400'}`}>
                   {i === 6 ? 'Closed' : '09:00 - 20:00'}
                 </p>
               </div>
@@ -318,8 +317,6 @@ const AboutPage = () => {
           </div>
         </div>
       </section>
-
-      <Footer />
 
     </div>
   );

@@ -6,7 +6,8 @@ from .views import (
     PayrollListApi, GeneratePayrollApi,
     GoogleLoginApi, UserListApi,
     CustomLoginApi, VerifyRegistrationOTPApi, VerifyAdminLoginOTPApi,
-    CustomTokenRefreshView
+    CustomTokenRefreshView,
+    MyEmployeeProfileApi, EmployeeReviewsApi, EmployeeNotificationsApi
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -26,7 +27,10 @@ urlpatterns = [
         
     # Employees
     path('employees/', EmployeeListCreateApi.as_view(), name='employee-list'),
+    path('employees/me/', MyEmployeeProfileApi.as_view(), name='employee-me'),
     path('employees/<int:pk>/', EmployeeDetailApi.as_view(), name='employee-detail'),
+    path('employees/me/reviews/', EmployeeReviewsApi.as_view(), name='employee-reviews'),
+    path('employees/me/notifications/', EmployeeNotificationsApi.as_view(), name='employee-notifications'),
     
     # Attendance
     path('attendance/', AttendanceListApi.as_view(), name='attendance-list'),

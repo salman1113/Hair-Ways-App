@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Star, Quote, Calendar } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import Footer from '../components/Footer';
+
 
 const ReviewsPage = () => {
     // API Data State (Empty placeholder for now)
@@ -116,7 +116,7 @@ const ReviewsPage = () => {
                 </div>
             </section>
 
-            <Footer />
+
         </div>
     );
 };

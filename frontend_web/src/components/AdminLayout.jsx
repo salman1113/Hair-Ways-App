@@ -41,8 +41,22 @@ const AdminLayout = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 p-4 md:p-10 overflow-y-auto w-full relative">
+      <div className="flex-1 p-4 md:p-10 overflow-y-auto w-full relative pb-24 md:pb-10">
         <Outlet /> {/* Child pages will appear here */}
+      </div>
+
+      {/* Mobile Bottom Navigation */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#3F0D12] text-[#FBE4E3] z-50 border-t border-[#D72638]/20 flex justify-around items-center p-2 pb-safe shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
+        {menuItems.map((item) => (
+          <button
+            key={item.path}
+            onClick={() => navigate(item.path)}
+            className={`flex flex-col items-center gap-1 p-2 rounded-xl transition flex-1 ${location.pathname === item.path ? 'text-[#D72638]' : 'text-white/60 hover:text-white'}`}
+          >
+            {React.cloneElement(item.icon, { size: location.pathname === item.path ? 24 : 20 })}
+            <span className="text-[10px] font-bold tracking-wider">{item.name}</span>
+          </button>
+        ))}
       </div>
 
       <AdminChatDrawer />

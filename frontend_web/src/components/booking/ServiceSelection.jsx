@@ -56,14 +56,14 @@ const ServiceSelection = ({ categories, services, selectedServices, toggleServic
                                         <Scissors size={18} />
                                     </div>
                                     <div className="overflow-hidden">
-                                        <h4 className={`font-bold text-sm truncate pr-2 ${isSelected ? 'text-[#1A1A1A]' : 'text-gray-800'}`}>{service.name}</h4>
-                                        <p className="text-xs text-gray-500">{service.duration_minutes} mins</p>
+                                        <h4 className={`font-bold text-xs md:text-sm truncate pr-2 ${isSelected ? 'text-[#1A1A1A]' : 'text-gray-800'}`}>{service.name}</h4>
+                                        <p className="text-[10px] md:text-xs text-gray-500 mt-0.5">{service.duration_minutes} mins</p>
                                     </div>
                                 </div>
 
-                                <div className="text-right flex-shrink-0">
+                                <div className="text-right flex-shrink-0 flex flex-col items-end justify-center">
                                     <p className="text-sm font-black text-[#1A1A1A]">₹{service.price}</p>
-                                    {isSelected && <CheckCircle size={16} className="text-[#C19D6C] ml-auto mt-1" />}
+                                    {isSelected && <CheckCircle size={16} className="text-[#C19D6C] mt-1" />}
                                 </div>
                             </div>
                         );

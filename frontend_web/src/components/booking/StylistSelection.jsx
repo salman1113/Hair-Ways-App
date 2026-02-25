@@ -17,26 +17,26 @@ const StylistSelection = ({ employees, selectedEmployee, setSelectedEmployee }) 
                         <div
                             key={emp.id}
                             onClick={() => setSelectedEmployee(emp.id)}
-                            className={`relative p-4 rounded-2xl cursor-pointer transition-all duration-300 border-2 flex flex-col items-center text-center
+                            className={`relative p-3 md:p-4 rounded-2xl cursor-pointer transition-all duration-300 border-2 flex flex-col items-center text-center
                     ${isSelected
                                     ? 'border-[#C19D6C] bg-white shadow-xl transform scale-105 z-10'
                                     : 'border-transparent bg-gray-50 hover:bg-white hover:shadow-md hover:border-gray-200'}`}
                         >
-                            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-3 shadow-inner text-xl font-bold uppercase
+                            <div className={`w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center mb-2 md:mb-3 shadow-inner text-lg md:text-xl font-bold uppercase
                          ${isSelected ? 'bg-[#1A1A1A] text-[#C19D6C]' : 'bg-gray-200 text-gray-500'}`}>
                                 {emp.user_details?.username?.[0] || 'S'}
                             </div>
 
-                            <h4 className="font-bold text-[#1A1A1A] px-2 w-full truncate">{emp.user_details?.username}</h4>
-                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-2 w-full truncate px-2">{emp.job_title}</p>
+                            <h4 className="font-bold text-sm md:text-base text-[#1A1A1A] px-1 md:px-2 w-full truncate">{emp.user_details?.username}</h4>
+                            <p className="text-[10px] md:text-xs text-gray-500 font-medium uppercase tracking-wide mb-2 w-full truncate px-1 md:px-2">{emp.job_title}</p>
 
                             {/* Rating */}
-                            <div className={`flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${isSelected ? 'text-[#C19D6C] bg-[#C19D6C]/10' : 'text-yellow-500 bg-yellow-50'}`}>
+                            <div className={`flex items-center gap-1 text-[10px] md:text-xs font-bold px-2 py-0.5 rounded-full ${isSelected ? 'text-[#C19D6C] bg-[#C19D6C]/10' : 'text-yellow-500 bg-yellow-50'}`}>
                                 <Star size={10} fill="currentColor" /> {emp.rating || 5.0}
                             </div>
 
                             {isSelected && (
-                                <div className="absolute top-3 right-3 w-3 h-3 bg-[#C19D6C] rounded-full shadow-sm ring-2 ring-white"></div>
+                                <div className="absolute top-2 right-2 md:top-3 md:right-3 w-3 h-3 bg-[#C19D6C] rounded-full shadow-sm ring-2 ring-white"></div>
                             )}
                         </div>
                     );

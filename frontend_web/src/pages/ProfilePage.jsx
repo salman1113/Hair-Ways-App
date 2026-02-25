@@ -74,7 +74,7 @@ const ProfilePage = () => {
             <div className="max-w-7xl mx-auto space-y-10">
 
                 {/* --- HEADER SECTION --- */}
-                <div className="flex flex-col md:flex-row justify-between items-end gap-6 border-b border-[#1A1A1A] pb-8">
+                <div className="flex flex-col md:flex-row justify-between items-center md:items-end gap-6 border-b border-[#1A1A1A] pb-8">
                     <div className="flex items-center gap-6">
                         <div className="relative">
                             <div className="w-24 h-24 rounded-full bg-[#1A1A1A] border-2 border-[#C19D6C] flex items-center justify-center text-4xl font-bold text-[#C19D6C]">
@@ -85,7 +85,7 @@ const ProfilePage = () => {
                             </div>
                         </div>
                         <div>
-                            <h1 className="text-4xl font-bold tracking-tight mb-1">{profile?.username}</h1>
+                            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-1">{profile?.username}</h1>
                             <p className="text-gray-400 text-sm tracking-wide">{profile?.email}</p>
                             <div className="flex gap-2 mt-3">
                                 <span className="bg-[#1A1A1A] text-[#C19D6C] text-[10px] font-bold uppercase px-3 py-1 rounded-full border border-[#C19D6C]/20">
@@ -100,7 +100,7 @@ const ProfilePage = () => {
                         </div>
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="flex flex-wrap justify-center md:justify-end gap-3 w-full md:w-auto mt-4 md:mt-0">
                         <button
                             onClick={() => setShowEditModal(true)}
                             className="px-6 py-2.5 bg-[#1A1A1A] text-white border border-[#333] hover:border-[#C19D6C] rounded-full font-bold text-sm transition flex items-center gap-2"
@@ -209,9 +209,9 @@ const ProfilePage = () => {
                                                     <h4 className="text-white font-bold text-lg flex items-center gap-3">
                                                         Token #{booking.token_number}
                                                         <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold border ${booking.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
-                                                                booking.status === 'CANCELLED' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
-                                                                    booking.status === 'IN_PROGRESS' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
-                                                                        'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                                                            booking.status === 'CANCELLED' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                                                                booking.status === 'IN_PROGRESS' ? 'bg-blue-500/10 text-blue-500 border-blue-500/20' :
+                                                                    'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
                                                             }`}>
                                                             {booking.status}
                                                         </span>

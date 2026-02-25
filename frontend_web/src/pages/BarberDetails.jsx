@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Instagram, Twitter, Linkedin, Youtube, ArrowLeft, Mail, Clock, Scissors } from 'lucide-react';
-import Footer from '../components/Footer';
+
 
 const BarberDetails = () => {
     const { id } = useParams();
@@ -39,20 +39,20 @@ const BarberDetails = () => {
     return (
         <div className="font-sans text-[#1A1A1A] antialiased bg-white selection:bg-[#C19D6C] selection:text-white pt-24">
 
-            <div className="max-w-7xl mx-auto px-6 py-12">
+            <div className="max-w-7xl mx-auto px-6 py-8 md:py-12">
                 {/* Back Button */}
                 <Link to="/team" className="inline-flex items-center gap-2 text-gray-500 hover:text-[#C19D6C] mb-8 transition font-bold text-sm">
                     <ArrowLeft size={18} /> Back to Team
                 </Link>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16 items-start">
 
                     {/* LEFT: IMAGE */}
                     <motion.div
                         initial={{ opacity: 0, x: -50 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.6 }}
-                        className="relative rounded-3xl overflow-hidden aspect-[4/5] shadow-2xl bg-gray-100"
+                        className="relative rounded-3xl overflow-hidden aspect-square sm:aspect-[4/5] shadow-2xl bg-gray-100 w-full max-w-md mx-auto lg:max-w-none"
                     >
                         <img src={member.user_details?.profile_picture || defaultImg} alt={member.username} className="w-full h-full object-cover" />
                     </motion.div>
@@ -71,8 +71,8 @@ const BarberDetails = () => {
 
                         {/* Name & Bio */}
                         <div>
-                            <h1 className="text-5xl font-bold mb-6 text-[#0B0B0B] leading-tight">{member.username}</h1>
-                            <p className="text-gray-600 text-lg leading-relaxed">{member.bio || "Passionate about creating styles that define personality. Dedicated to the craft of grooming."}</p>
+                            <h1 className="text-4xl md:text-5xl font-bold mb-4 md:mb-6 text-[#0B0B0B] leading-tight">{member.username}</h1>
+                            <p className="text-gray-600 text-base md:text-lg leading-relaxed">{member.bio || "Passionate about creating styles that define personality. Dedicated to the craft of grooming."}</p>
                         </div>
 
                         {/* Info Grid */}
@@ -117,7 +117,7 @@ const BarberDetails = () => {
                 </div>
             </div>
 
-            <Footer />
+
         </div>
     );
 };
