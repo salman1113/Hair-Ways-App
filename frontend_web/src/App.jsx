@@ -80,6 +80,11 @@ const AppContent = () => {
       setFirstLoadDone(true);
       return;
     }
+    // Skip transition loader for admin and employee routes
+    if (location.pathname.startsWith('/admin') || location.pathname.startsWith('/employee')) {
+      setPageLoading(false);
+      return;
+    }
     setPageLoading(true);
     const timer = setTimeout(() => setPageLoading(false), 1000);
     return () => clearTimeout(timer);
@@ -92,13 +97,13 @@ const AppContent = () => {
   return (
     <>
       <Toaster position="top-right" toastOptions={{ className: 'z-[9999]', duration: 4000 }} />
-      {pageLoading && <Loader />}
+      {pageLoading && !isDashboard && <Loader />}
       {!isDashboard && <Navbar />}
       {!isDashboard && <CustomerChatWidget />}
 
       {/* ... rest of the code ... */}
 
-      <div className={`flex flex-col min-h-screen transition-opacity duration-500 relative ${pageLoading ? "opacity-0" : "opacity-100"}`}>
+      <div className={`flex flex-col min-h-screen transition-opacity duration-500 relative ${pageLoading && !isDashboard ? "opacity-0" : "opacity-100"}`}>
         <main className="flex-grow flex flex-col relative w-full">
           <Routes>
             {/* Public */}

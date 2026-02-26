@@ -279,14 +279,14 @@ const EmployeeDashboard = () => {
                     <div className="w-12 h-12 bg-[#C19D6C]/10 text-[#C19D6C] flex items-center justify-center rounded-full mb-3">
                         <CheckCircle size={24} />
                     </div>
-                    <span className="text-3xl font-black text-[#1A1A1A] leading-none mb-1">{dashboardData.jobs_completed || 0}</span>
+                    <span className="text-3xl font-black text-emerald-600 leading-none mb-1">{dashboardData.jobs_completed || 0}</span>
                     <span className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">Completed</span>
                 </div>
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center">
                     <div className="w-12 h-12 bg-green-50 text-green-600 flex items-center justify-center rounded-full mb-3">
                         <IndianRupee size={24} />
                     </div>
-                    <span className="text-3xl font-black text-[#1A1A1A] leading-none mb-1">{parseFloat(dashboardData.today_earnings || 0).toFixed(0)}</span>
+                    <span className="text-3xl font-black text-emerald-600 leading-none mb-1">{parseFloat(dashboardData.today_earnings || 0).toFixed(0)}</span>
                     <span className="text-[10px] uppercase font-bold text-gray-400 tracking-widest">Earnings</span>
                 </div>
             </div>
@@ -717,10 +717,6 @@ const EmployeeDashboard = () => {
             </div>
         </div>
     );
-
-    if (loading) {
-        return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-500 font-medium">Booting Portal...</div>;
-    }
 
     return (
         <div className="min-h-screen bg-[#F9F9F9] pb-24 font-sans selection:bg-[#C19D6C] selection:text-white">
