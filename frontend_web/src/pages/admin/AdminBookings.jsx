@@ -76,10 +76,10 @@ const AdminBookings = () => {
     // 3. QUICK STATS — Computed from filtered bookings
     // ═══════════════════════════════════════════════════════
     const stats = useMemo(() => ({
-        total: filteredBookings.length,
-        pending: filteredBookings.filter(b => b.status === 'PENDING').length,
-        revenue: filteredBookings.reduce((sum, b) => sum + parseFloat(b.total_price || 0), 0),
-    }), [filteredBookings]);
+        total: bookings.length,
+        pending: bookings.filter(b => b.status === 'PENDING').length,
+        revenue: bookings.filter(b => b.status === 'COMPLETED').reduce((sum, b) => sum + parseFloat(b.total_price || 0), 0),
+    }), [bookings]);
 
     const fetchBookings = async () => {
         setLoading(true);
@@ -434,7 +434,7 @@ const AdminBookings = () => {
 
                             {/* Actions */}
                             <div className="grid grid-cols-1 gap-3">
-                                {['PENDING', 'CONFIRMED'].includes(selectedBooking.status) && (
+                                {['CONFIRMED'].includes(selectedBooking.status) && (
                                     <button
                                         onClick={() => handleStatusChange(selectedBooking.id, 'IN_PROGRESS')}
                                         className="w-full py-3.5 bg-[#C19D6C] text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-[#a6865c] transition"
