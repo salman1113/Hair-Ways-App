@@ -223,7 +223,23 @@ class StartJobApi(APIView):
 
             if booking.status != 'CONFIRMED' and booking.status != 'PENDING':
                  return Response({"error": "Booking must be Pending/Confirmed to start"}, status=400)
-            
+
+            # 15-Minute Buffer: Prevent starting too early
+            if booking.booking_date and booking.booking_time:
+                from datetime import datetime as dt
+                booking_datetime = timezone.make_aware(
+                    dt.combine(booking.booking_date, booking.booking_time)
+                ) if timezone.is_naive(dt.combine(booking.booking_date, booking.booking_time)) else dt.combine(booking.booking_date, booking.booking_time)
+                
+                earliest_start = booking_datetime - timedelta(minutes=15)
+                now = timezone.localtime()
+
+                if now < earliest_start:
+                    mins_remaining = int((earliest_start - now).total_seconds() // 60)
+                    return Response({
+                        "error": f"Cannot start this service yet. You can start 15 minutes prior to the scheduled time ({booking.booking_time.strftime('%H:%M')}). Please wait {mins_remaining} more minute(s)."
+                    }, status=400)
+
             booking.status = 'IN_PROGRESS'
             booking.actual_start_time = timezone.now()
             booking.save()

@@ -43,6 +43,32 @@ import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 
 import { Toaster } from 'react-hot-toast';
 
+// 🛡️ GUARDS - Defined OUTSIDE AppContent for stable component identity
+const AdminRoute = ({ children }) => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== 'ADMIN' && user.role !== 'MANAGER') return <Navigate to="/" />;
+  return children;
+};
+
+const EmployeeRoute = ({ children }) => {
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" />;
+  if (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') return <Navigate to="/" />;
+  return children;
+};
+
+const HomeOrAdminRedirect = () => {
+  const { user } = useAuth();
+  if (user && (user.role === 'ADMIN' || user.role === 'MANAGER')) {
+    return <Navigate to="/admin" replace />;
+  }
+  if (user && user.role === 'EMPLOYEE') {
+    return <Navigate to="/employee" replace />;
+  }
+  return <HomePage />;
+};
+
 const AppContent = () => {
   const location = useLocation();
   const { user, loading } = useAuth();
@@ -60,30 +86,6 @@ const AppContent = () => {
   }, [location.pathname]);
 
   if (loading) return <Loader />;
-
-  // 🛡️ GUARDS
-  const AdminRoute = ({ children }) => {
-    if (!user) return <Navigate to="/login" />;
-    if (user.role !== 'ADMIN' && user.role !== 'MANAGER') return <Navigate to="/" />;
-    return children;
-  };
-
-  const EmployeeRoute = ({ children }) => {
-    if (!user) return <Navigate to="/login" />;
-    if (user.role !== 'EMPLOYEE' && user.role !== 'ADMIN') return <Navigate to="/" />;
-    return children;
-  };
-
-  // 🛡️ Redirect authenticated users properly
-  const HomeOrAdminRedirect = () => {
-    if (user && (user.role === 'ADMIN' || user.role === 'MANAGER')) {
-      return <Navigate to="/admin" replace />;
-    }
-    if (user && user.role === 'EMPLOYEE') {
-      return <Navigate to="/employee" replace />;
-    }
-    return <HomePage />;
-  };
 
   const isDashboard = location.pathname.startsWith('/admin') || location.pathname.startsWith('/employee');
 

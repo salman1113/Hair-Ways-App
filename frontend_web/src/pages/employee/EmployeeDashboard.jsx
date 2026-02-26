@@ -86,6 +86,13 @@ const EmployeeDashboard = () => {
     const [walkInForm, setWalkInForm] = useState({ guest_name: '', guest_phone: '', service_ids: [] });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Tick every 30s so the Start button's 15-min buffer re-evaluates automatically
+    const [currentTime, setCurrentTime] = useState(Date.now());
+    useEffect(() => {
+        const ticker = setInterval(() => setCurrentTime(Date.now()), 30000);
+        return () => clearInterval(ticker);
+    }, []);
+
     useEffect(() => {
         if (user) {
             const available = user.employee_profile?.is_available ?? user.is_available ?? false;
@@ -190,7 +197,7 @@ const EmployeeDashboard = () => {
             toast.success("Job Started! Timer active.");
             fetchDashboardData(); // Refresh queue
         } catch (error) {
-            toast.error("Failed to start job");
+            toast.error(error.response?.data?.error || "Failed to start job");
         }
     };
 
@@ -373,12 +380,34 @@ const EmployeeDashboard = () => {
                                         <p className="text-xs text-gray-500 font-medium truncate">{booking.items?.map(i => i.service?.name).join(', ') || 'Assigned Service'}</p>
                                     </div>
 
-                                    <button
-                                        onClick={() => handleStartJob(booking.id)}
-                                        className="h-10 px-4 rounded-xl bg-[#C19D6C] text-white flex items-center justify-center font-bold text-sm hover:bg-[#a6865c] transition-colors shadow-md active:scale-95 whitespace-nowrap gap-1.5"
-                                    >
-                                        <Play size={14} fill="currentColor" /> Start
-                                    </button>
+                                    {(() => {
+                                        // 15-minute buffer: allow start only within 15 mins before booking_time
+                                        const now = new Date();
+                                        const [h, m, s] = (booking.booking_time || '00:00:00').split(':').map(Number);
+                                        const bookingDt = new Date(booking.booking_date);
+                                        bookingDt.setHours(h, m, s || 0, 0);
+                                        const earliest = new Date(bookingDt.getTime() - 15 * 60 * 1000);
+                                        const tooEarly = now < earliest;
+                                        const minsLeft = Math.ceil((earliest - now) / 60000);
+
+                                        return (
+                                            <div className="flex flex-col items-end gap-1">
+                                                <button
+                                                    onClick={() => !tooEarly && handleStartJob(booking.id)}
+                                                    disabled={tooEarly}
+                                                    className={`h-10 px-4 rounded-xl flex items-center justify-center font-bold text-sm shadow-md whitespace-nowrap gap-1.5 transition-colors ${tooEarly
+                                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                        : 'bg-[#C19D6C] text-white hover:bg-[#a6865c] active:scale-95'
+                                                        }`}
+                                                >
+                                                    <Play size={14} fill="currentColor" /> {tooEarly ? `Wait ${minsLeft}m` : 'Start'}
+                                                </button>
+                                                {tooEarly && (
+                                                    <span className="text-[9px] text-gray-400 font-medium">Opens 15 min before slot</span>
+                                                )}
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         ))

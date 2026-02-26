@@ -34,11 +34,37 @@ const AdminBookings = () => {
         }
 
         if (searchQuery) {
-            const lowerQ = searchQuery.toLowerCase();
+            const lowerQ = searchQuery.toLowerCase().trim();
             result = result.filter(b => {
-                const displayName = b.is_walk_in ? b.guest_name : (b.customer_details?.username || '');
-                return b.token_number.toLowerCase().includes(lowerQ) ||
-                    (displayName && displayName.toLowerCase().includes(lowerQ));
+                // Customer / Guest name
+                const customerName = b.is_walk_in
+                    ? (b.guest_name || '')
+                    : (b.customer_details?.username || '');
+
+                // Employee / Stylist name
+                const employeeName = b.employee_details?.user_details?.username || '';
+
+                // Service names (joined)
+                const serviceNames = b.items?.map(i => i.service_name).join(' ') || '';
+
+                // Phone number
+                const phone = b.phone_number || b.guest_phone || '';
+
+                // Booking type
+                const bookingType = b.is_walk_in ? 'walk-in walkin walk in' : 'online';
+
+                // Token number
+                const token = b.token_number || '';
+
+                // Booking time
+                const time = b.booking_time || '';
+
+                const searchableText = [
+                    token, customerName, employeeName,
+                    serviceNames, phone, bookingType, time
+                ].join(' ').toLowerCase();
+
+                return searchableText.includes(lowerQ);
             });
         }
         setFilteredBookings(result);
@@ -123,7 +149,7 @@ const AdminBookings = () => {
                         <Search className="absolute left-3 top-3 text-gray-400" size={18} />
                         <input
                             type="text"
-                            placeholder="Search Token (e.g., T-10)..."
+                            placeholder="Search by token, customer, stylist, service, phone..."
                             className="w-full pl-10 pr-4 py-2.5 border rounded-xl outline-none focus:ring-2 focus:ring-[#3F0D12] bg-white shadow-sm"
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
