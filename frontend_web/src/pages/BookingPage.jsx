@@ -107,9 +107,15 @@ const BookingPage = () => {
       if (error.response && error.response.data) {
         const errData = error.response.data;
 
+        // Extract nested DRF ValidationError payload (e.g. non_field_errors)
+        let payload = errData;
+        if (errData.non_field_errors && Array.isArray(errData.non_field_errors)) {
+          payload = errData.non_field_errors[0];
+        }
+
         // Handle Suggestion Logic
-        if (errData.suggested_time) {
-          const suggestion = Array.isArray(errData.suggested_time) ? errData.suggested_time[0] : errData.suggested_time;
+        if (payload.suggested_time) {
+          const suggestion = Array.isArray(payload.suggested_time) ? payload.suggested_time[0] : payload.suggested_time;
           errorMsg = `Slot busy! 😓 Try ${suggestion}?`;
           toast((t) => (
             <div className="flex flex-col gap-2">
@@ -123,8 +129,11 @@ const BookingPage = () => {
           ), { id: toastId, duration: 6000, icon: '⚠️' });
           return;
         }
-        else if (errData.message) {
-          errorMsg = Array.isArray(errData.message) ? errData.message[0] : errData.message;
+        else if (payload.message) {
+          errorMsg = Array.isArray(payload.message) ? payload.message[0] : payload.message;
+        }
+        else if (typeof payload === 'string') {
+          errorMsg = payload;
         }
       }
       toast.error(errorMsg, { id: toastId });

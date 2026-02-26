@@ -31,6 +31,7 @@ class BookingSerializer(serializers.ModelSerializer):
             'items', 'service_ids'
         ]
         read_only_fields = ['token_number', 'total_price', 'created_at', 'status', 'actual_start_time', 'actual_end_time']
+        validators = []  # Bypass DRF UniqueTogetherValidator to use custom validate() messages
 
     # Time Overlap Validation
     def validate(self, data):
@@ -61,6 +62,25 @@ class BookingSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({"booking_date": "Cannot book for a past date."})
             elif booking_date == local_now.date() and booking_time < local_now.time():
                 raise serializers.ValidationError({"error": "Time Pass", "message": "Cannot book a slot in the past."})
+
+        # --- NEW STRICT BUSINESS RULES ---
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            user = request.user
+            
+            # Rule 1: Same-Time Clash Prevention
+            if Booking.objects.filter(customer=user, booking_date=booking_date, booking_time=booking_time).exclude(status='CANCELLED').exists():
+                raise serializers.ValidationError({
+                    "error": "Double Booking",
+                    "message": "you have a booking same this time"
+                })
+
+            # Rule 2: Maximum 2 Bookings Per Day
+            if Booking.objects.filter(customer=user, booking_date=booking_date).exclude(status='CANCELLED').count() >= 2:
+                raise serializers.ValidationError({
+                    "error": "Limit Reached",
+                    "message": "You have reached the maximum limit of 2 bookings for this day."
+                })
 
         if employee and booking_date and booking_time:
             req_duration = 0
@@ -95,32 +115,6 @@ class BookingSerializer(serializers.ModelSerializer):
                         "message": f"Stylist is busy until {suggested_time.strftime('%H:%M')}.",
                         "suggested_time": suggested_time.strftime("%H:%M")
                     })
-
-            # Check Customer Overlaps (Prevent booking multiple services at the exact same time)
-            request = self.context.get('request')
-            if request and hasattr(request, 'user') and request.user.is_authenticated:
-                user_day_bookings = Booking.objects.filter(
-                    customer=request.user,
-                    booking_date=booking_date,
-                    status__in=['PENDING', 'CONFIRMED', 'IN_PROGRESS']
-                ).prefetch_related('items__service')
-
-                for booking in user_day_bookings:
-                    exist_duration = sum(item.service.duration_minutes for item in booking.items.all())
-                    if exist_duration == 0: exist_duration = 30
-                    
-                    exist_start_dt = datetime.combine(booking.booking_date, booking.booking_time)
-                    exist_end_dt = exist_start_dt + timedelta(minutes=exist_duration)
-
-                    if req_start_dt < exist_end_dt and req_end_dt > exist_start_dt:
-                        # Convert to 12-hour AM/PM format for the user message
-                        formatted_start = exist_start_dt.strftime('%I:%M %p')
-                        formatted_end = exist_end_dt.strftime('%I:%M %p')
-                        
-                        raise serializers.ValidationError({
-                            "error": "Double Booking",
-                            "message": f"You already have an appointment from {formatted_start} to {formatted_end}. Please select a time after {formatted_end}."
-                        })
 
         return data
 

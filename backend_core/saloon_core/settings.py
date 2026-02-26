@@ -36,6 +36,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -43,10 +44,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    # Channels
+    'channels',
+
     # Third-party Packages
     'rest_framework',
     'corsheaders',
     'django_filters',
+    'django_celery_beat',
 
     # swagger
     'drf_yasg',
@@ -85,7 +90,21 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'saloon_core.wsgi.application'
+# WSGI_APPLICATION = 'saloon_core.wsgi.application'
+ASGI_APPLICATION = 'saloon_core.asgi.application'
+
+# Channels configuration
+REDIS_HOST = os.getenv('REDIS_HOST', 'redis')
+REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [(REDIS_HOST, REDIS_PORT)],
+        },
+    },
+}
 
 
 # Database
@@ -102,6 +121,9 @@ DATABASES = {
         'PORT': os.getenv('DB_PORT'),
     }
 }
+
+# Default primary key field type
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # Password validation
@@ -128,7 +150,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
@@ -199,3 +221,28 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS') == 'True'
 EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL') == 'True'
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+
+# Celery Settings
+CELERY_BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
+CELERY_RESULT_BACKEND = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
+CELERY_ACCEPT_CONTENT = ['application/json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'auto-cancel-no-shows-every-5-mins': {
+        'task': 'bookings.tasks.auto_cancel_no_shows',
+        'schedule': crontab(minute='*/5'),  # Run every 5 minutes
+    },
+    'nightly-admin-pdf-report': {
+        'task': 'bookings.tasks.generate_nightly_admin_report',
+        'schedule': crontab(minute=59, hour=23),  # Run daily at 11:59 PM (Local Server Time)
+    },
+    'smart-appointment-reminders': {
+        'task': 'bookings.tasks.send_upcoming_booking_reminders',
+        'schedule': crontab(minute='*/5'),  # Run every 5 minutes
+    },
+}

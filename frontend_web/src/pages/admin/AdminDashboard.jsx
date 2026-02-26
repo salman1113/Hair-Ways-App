@@ -5,7 +5,7 @@ import {
     Briefcase, XCircle, CheckCircle,
     DollarSign, CalendarDays
 } from 'lucide-react';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
@@ -49,7 +49,6 @@ const AdminDashboard = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 pb-12">
-            <Toaster position="top-center" />
 
             {/* Top Bar with Date Filter */}
             <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-4 sticky top-0 z-20 shadow-sm">
@@ -200,8 +199,8 @@ const AdminDashboard = () => {
                                                 <div className="w-full bg-gray-100 rounded-full h-2.5">
                                                     <div
                                                         className={`h-2.5 rounded-full transition-all duration-700 ${i === 0 ? 'bg-gradient-to-r from-[#3F0D12] to-[#D72638]' :
-                                                                i === 1 ? 'bg-gradient-to-r from-[#3F0D12] to-[#C19D6C]' :
-                                                                    'bg-[#3F0D12]/60'
+                                                            i === 1 ? 'bg-gradient-to-r from-[#3F0D12] to-[#C19D6C]' :
+                                                                'bg-[#3F0D12]/60'
                                                             }`}
                                                         style={{ width: `${widthPct}%` }}
                                                     ></div>

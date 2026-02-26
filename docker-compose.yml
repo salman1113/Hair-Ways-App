@@ -16,13 +16,21 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  # 1.5 Redis for WebSockets & Celery
+  redis:
+    image: redis:alpine
+    restart: always
+    ports:
+      - "6379:6379"
+
   # 2. Django Backend Core
   backend:
     build: ./backend_core
     command: >
-      sh -c "python manage.py makemigrations &&
+      sh -c "python manage.py collectstatic --noinput &&
+             python manage.py makemigrations &&
              python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
+             daphne -b 0.0.0.0 -p 8000 saloon_core.asgi:application"
     volumes:
       - ./backend_core:/app
       - static_data:/app/staticfiles
@@ -33,8 +41,10 @@ services:
       - backend_core/.env
     environment:
       - DB_HOST=db
+      - REDIS_HOST=redis
     depends_on:
       - db
+      - redis
 
   # 3. FastAPI AI Engine
   ai_engine:
@@ -55,9 +65,44 @@ services:
     build: ./api_gateway
     ports:
       - "80:80" # The main entrypoint for the frontend
+    volumes:
+      - static_data:/app/staticfiles
+      - media_data:/app/media
     depends_on:
       - backend
       - ai_engine
+
+  # 5. Celery Worker (Background tasks)
+  celery_worker:
+    build: ./backend_core
+    command: celery -A saloon_core worker -l INFO
+    volumes:
+      - ./backend_core:/app
+    env_file:
+      - backend_core/.env
+    environment:
+      - DB_HOST=db
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+      - db
+      - backend
+
+  # 6. Celery Beat (Periodic jobs)
+  celery_beat:
+    build: ./backend_core
+    command: celery -A saloon_core beat -l INFO
+    volumes:
+      - ./backend_core:/app
+    env_file:
+      - backend_core/.env
+    environment:
+      - DB_HOST=db
+      - REDIS_HOST=redis
+    depends_on:
+      - redis
+      - db
+      - backend
 
 volumes:
   pgdata:

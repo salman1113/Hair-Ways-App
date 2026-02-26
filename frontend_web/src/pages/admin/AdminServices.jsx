@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getServices, createService, deleteService, getCategories, updateService, createCategory, deleteCategory } from '../../services/api';
 import { Trash2, Edit, Plus, Image, Clock, Search, FolderPlus, X, Package } from 'lucide-react';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 const AdminServices = () => {
     const [services, setServices] = useState([]);
@@ -104,7 +104,6 @@ const AdminServices = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 pb-12">
-            <Toaster position="top-center" />
 
             {/* HEADER */}
             <div className="bg-white border-b px-4 md:px-6 py-4 md:py-5 sticky top-0 z-10 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

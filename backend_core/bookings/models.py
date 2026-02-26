@@ -44,6 +44,7 @@ class Booking(models.Model):
     
     # Reschedule Tracking
     is_rescheduled = models.BooleanField(default=False, help_text="Can only reschedule once")
+    is_reminder_sent = models.BooleanField(default=False)
     total_price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     
     # Financial Tracking
@@ -57,6 +58,9 @@ class Booking(models.Model):
             ('booking_date', 'token_number'),
             ('employee', 'booking_date', 'booking_time')  # Prevent double-booking: An employee cannot have two bookings at the same time
         ]
+
+    def __str__(self):
+        return f"Token #{self.token_number} - {self.status}"
 
     def __str__(self):
         return f"Token #{self.token_number} - {self.status}"

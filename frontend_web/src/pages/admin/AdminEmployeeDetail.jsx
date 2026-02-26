@@ -4,7 +4,7 @@ import {
     ArrowLeft, IndianRupee, Briefcase, Image, Upload, X, CheckCircle, Clock, User, ExternalLink
 } from 'lucide-react';
 import { getEmployeeDetail, getPayoutHistory, settlePayout, getQueue } from '../../services/api';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 const AdminEmployeeDetail = () => {
     const { id } = useParams();
@@ -99,7 +99,6 @@ const AdminEmployeeDetail = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 pb-12">
-            <Toaster position="top-center" />
 
             {/* Header */}
             <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-4 sticky top-0 z-20 shadow-sm">

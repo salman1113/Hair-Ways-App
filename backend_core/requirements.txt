@@ -9,3 +9,10 @@ python-dotenv
 Pillow
 google-auth
 requests
+channels>=4.0.0
+channels_redis>=4.2.0
+daphne>=4.0.0
+celery
+django-celery-beat
+redis
+reportlab

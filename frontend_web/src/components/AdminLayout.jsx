@@ -3,11 +3,17 @@ import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Users, Scissors, LogOut, Package, LayoutDashboard, Receipt, Search, Bell, User } from 'lucide-react';
 import AdminChatDrawer from './AdminChatDrawer';
+import useWebSocketNotification from '../hooks/useWebSocketNotification';
 
 const AdminLayout = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Listen for WebSocket notifications
+  useWebSocketNotification(() => {
+    console.log("WebSocket event received in AdminLayout. You could trigger a global state refresh here if needed.");
+  });
 
   const menuItems = [
     { name: 'Dashboard', path: '/admin', icon: <LayoutDashboard size={20} /> },

@@ -58,7 +58,7 @@ class BookingListCreateApi(APIView):
         """
         Create a new booking with atomic transaction and sequential token generation.
         """
-        serializer = BookingSerializer(data=request.data)
+        serializer = BookingSerializer(data=request.data, context={'request': request})
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

@@ -11,6 +11,7 @@ import {
     startJob, finishJob, getServices, createBooking, getMyPayoutHistory
 } from '../../services/api';
 import toast from 'react-hot-toast';
+import useWebSocketNotification from '../../hooks/useWebSocketNotification';
 
 // Circular Timer Component
 const TimerCircle = ({ startTime, durationMinutes }) => {
@@ -100,6 +101,20 @@ const EmployeeDashboard = () => {
         if (activeTab === 'inbox' && notifications.length === 0) fetchNotifications();
         if (activeTab === 'wallet') fetchPayouts();
     }, [activeTab, analyticsDate]);
+
+    // WebSocket Integration: Auto-refresh data on new message
+    useWebSocketNotification((messageData) => {
+        console.log("Live update via WebSocket!", messageData);
+        // Refresh the queue and earnings, and notifications list
+        fetchDashboardData();
+        fetchNotifications();
+
+        // If the action is a completed job or wallet payout, refresh the wallet balance
+        if (messageData.action === 'refresh_wallet' || messageData.message?.includes('completed')) {
+            fetchProfileData();
+            fetchPayouts(); // Optionally fetch payouts if it's a new payout
+        }
+    });
 
     // Data Fetching
     const fetchDashboardData = async () => {

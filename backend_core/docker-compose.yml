@@ -15,6 +15,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  redis:
+    image: redis:alpine
+    restart: always
+    ports:
+      - "6379:6379"
+
   web:
     build: .
     restart: always
@@ -24,15 +30,17 @@ services:
       - .env
     environment:
       DB_HOST: db # Override to point to the db service container
+      REDIS_HOST: redis
     volumes:
       - .:/app # Mount source code for live reloading in dev
       - static_data:/app/staticfiles
       - media_data:/app/media
     depends_on:
       - db
+      - redis
     command: >
       sh -c "python manage.py migrate &&
-             python manage.py runserver 0.0.0.0:8000"
+             daphne -b 0.0.0.0 -p 8000 saloon_core.asgi:application"
 
 volumes:
   postgres_data:

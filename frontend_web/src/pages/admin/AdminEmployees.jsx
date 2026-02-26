@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getEmployees, deleteEmployee, updateEmployee, getEmployeeAttendance } from '../../services/api';
 import api from '../../services/api';
 import { UserPlus, Search, Trash2, Edit, Eye, X, Clock, CheckCircle, XCircle, Loader2, DollarSign, Star, Briefcase, User, IndianRupee } from 'lucide-react';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 const AdminEmployees = () => {
     const navigate = useNavigate();
@@ -150,7 +150,6 @@ const AdminEmployees = () => {
 
     return (
         <div className="relative min-h-screen pb-10">
-            <Toaster position="top-center" />
 
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 md:mb-8 gap-4 px-4 md:px-0 mt-4 md:mt-0">

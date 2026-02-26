@@ -4,7 +4,7 @@ import {
     Calendar, Search, Filter, X, CheckCircle,
     PlayCircle, XCircle, FileText, User, Clock
 } from 'lucide-react';
-import toast, { Toaster } from 'react-hot-toast';
+import toast from 'react-hot-toast';
 
 const AdminBookings = () => {
     const [bookings, setBookings] = useState([]);
@@ -85,7 +85,6 @@ const AdminBookings = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 pb-10">
-            <Toaster position="top-center" />
 
             {/* --- HEADER SECTION --- */}
             <div className="bg-white border-b px-6 py-5 sticky top-0 z-10 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
