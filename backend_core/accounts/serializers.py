@@ -77,6 +77,55 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
         fields = '__all__'
 
+
+class CreateReviewSerializer(serializers.Serializer):
+    """Serializer for customers to submit a review for a completed booking."""
+    booking_id = serializers.IntegerField()
+    rating = serializers.DecimalField(max_digits=3, decimal_places=1)
+    comment = serializers.CharField(required=False, allow_blank=True, default='')
+
+    def validate_booking_id(self, value):
+        from bookings.models import Booking
+        try:
+            booking = Booking.objects.select_related('employee', 'customer').get(id=value)
+        except Booking.DoesNotExist:
+            raise serializers.ValidationError("Booking not found.")
+
+        if booking.status != 'COMPLETED':
+            raise serializers.ValidationError("You can only review completed bookings.")
+
+        if hasattr(booking, 'review') and booking.review is not None:
+            raise serializers.ValidationError("This booking has already been reviewed.")
+
+        if not booking.employee:
+            raise serializers.ValidationError("This booking has no assigned employee to review.")
+
+        return value
+
+    def validate_rating(self, value):
+        if value < 1 or value > 5:
+            raise serializers.ValidationError("Rating must be between 1 and 5.")
+        return value
+
+    def create(self, validated_data):
+        from bookings.models import Booking
+        booking = Booking.objects.select_related('employee', 'customer').get(id=validated_data['booking_id'])
+
+        customer_name = 'Guest'
+        if booking.customer:
+            customer_name = booking.customer.username
+        elif booking.guest_name:
+            customer_name = booking.guest_name
+
+        review = Review.objects.create(
+            employee=booking.employee,
+            booking=booking,
+            customer_name=customer_name,
+            rating=validated_data['rating'],
+            comment=validated_data.get('comment', ''),
+        )
+        return review
+
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notification

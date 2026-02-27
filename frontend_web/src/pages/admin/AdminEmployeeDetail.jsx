@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
     ArrowLeft, IndianRupee, Briefcase, Image, Upload, X, CheckCircle, Clock, User, ExternalLink
 } from 'lucide-react';
-import { getEmployeeDetail, getPayoutHistory, settlePayout, getQueue } from '../../services/api';
+import { getEmployeeDetail, getPayoutHistory, settlePayout } from '../../services/api';
 import toast from 'react-hot-toast';
 
 const AdminEmployeeDetail = () => {
@@ -23,6 +23,10 @@ const AdminEmployeeDetail = () => {
     // Lifetime Stats
     const [lifetimeWork, setLifetimeWork] = useState(0);
 
+    // Infinite Scroll
+    const [visibleCount, setVisibleCount] = useState(10);
+    const loaderRef = useRef(null);
+
     useEffect(() => {
         fetchAll();
     }, [id]);
@@ -30,18 +34,17 @@ const AdminEmployeeDetail = () => {
     const fetchAll = async () => {
         setLoading(true);
         try {
-            const [empData, payoutData, queueData] = await Promise.all([
+            const [empData, payoutData] = await Promise.all([
                 getEmployeeDetail(id),
-                getPayoutHistory(id),
-                getQueue()
+                getPayoutHistory(id)
             ]);
             setEmployee(empData);
             setPayouts(payoutData);
+            setVisibleCount(10); // Reset scroll on load
 
-            const allBookings = Array.isArray(queueData) ? queueData : [];
-            const empBookings = allBookings.filter(b => b.employee === parseInt(id) && b.status === 'COMPLETED');
-            const total = empBookings.reduce((sum, b) => sum + parseFloat(b.total_price || 0), 0);
-            setLifetimeWork(total);
+            // TEMPORARY FIX: Avoid loading entire queue into browser memory
+            // We will aggregate this on the backend later
+            setLifetimeWork(empData?.lifetime_earnings || 0);
         } catch (error) {
             console.error(error);
             toast.error("Failed to load employee data");
@@ -49,6 +52,21 @@ const AdminEmployeeDetail = () => {
             setLoading(false);
         }
     };
+
+    // Invisible Pagination Observer
+    useEffect(() => {
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                setVisibleCount((prev) => prev + 10);
+            }
+        }, { rootMargin: "100px" });
+
+        if (loaderRef.current) {
+            observer.observe(loaderRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [payouts, visibleCount]);
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
@@ -173,7 +191,7 @@ const AdminEmployeeDetail = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {payouts.map((p, i) => (
+                                    {payouts.slice(0, visibleCount).map((p, i) => (
                                         <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50/80 transition">
                                             <td className="py-3 px-5 text-sm font-medium text-gray-400">{i + 1}</td>
                                             <td className="py-3 px-5 text-sm font-medium text-gray-700">
@@ -196,6 +214,10 @@ const AdminEmployeeDetail = () => {
                                             </td>
                                         </tr>
                                     ))}
+                                    {/* Invisible Loader Row */}
+                                    {visibleCount < payouts.length && (
+                                        <tr ref={loaderRef} style={{ height: '10px' }}><td colSpan="4"></td></tr>
+                                    )}
                                 </tbody>
                             </table>
                         </div>

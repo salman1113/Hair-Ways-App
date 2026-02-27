@@ -10,6 +10,50 @@ from accounts.models import User
 from .pdf_generator import generate_daily_report_pdf
 
 @shared_task
+def send_cancellation_emails(booking_id):
+    """
+    Background task to notify both the customer and the assigned employee
+    when a booking is cancelled by the admin.
+    """
+    try:
+        booking = Booking.objects.select_related('customer', 'employee', 'employee__user').get(id=booking_id)
+    except Booking.DoesNotExist:
+        return f"Booking {booking_id} no longer exists."
+
+    subject = f"Booking Cancelled: Token #{booking.token_number}"
+    body = (
+        f"Hello,\n\n"
+        f"The booking (Token #{booking.token_number}) scheduled for "
+        f"{booking.booking_date.strftime('%B %d, %Y')} at {booking.booking_time.strftime('%I:%M %p')} "
+        f"has been cancelled by the admin.\n\n"
+        f"If you have any questions, please contact Hair Ways.\n\n"
+        f"Thank you!"
+    )
+
+    recipients = []
+
+    # 1. Customer email
+    if booking.customer and booking.customer.email:
+        recipients.append(booking.customer.email)
+
+    # 2. Employee email
+    if booking.employee and booking.employee.user and booking.employee.user.email:
+        recipients.append(booking.employee.user.email)
+
+    if recipients:
+        send_mail(
+            subject=subject,
+            message=body,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=recipients,
+            fail_silently=True,
+        )
+        return f"Cancellation emails sent to {recipients} for booking {booking_id}."
+    
+    return f"No recipients found for booking {booking_id}. Skipping email."
+
+
+@shared_task
 def send_booking_confirmation_email(booking_id):
     """
     Background task to send an email confirmation.
@@ -63,42 +107,46 @@ def auto_cancel_no_shows():
     """
     now = timezone.localtime()
     today_date = now.date()
-    current_time = now.time()
     
-    # 15 minutes ago reference point
-    time_threshold = (now - timedelta(minutes=15)).time()
-    
-    overdue_bookings = Booking.objects.filter(
+    # We fetch bookings for today first
+    todays_bookings = Booking.objects.filter(
         booking_date=today_date,
-        booking_time__lt=time_threshold,
         status__in=['PENDING', 'CONFIRMED']
     )
     
     cancelled_count = 0
-    
-    for booking in overdue_bookings:
-        booking.status = 'CANCELLED'
-        booking.save()
-        cancelled_count += 1
+    # Process memory-level comparisons since we combine date and time
+    for booking in todays_bookings:
+        if not booking.booking_time:
+             continue
+             
+        # Combine date + time into timezone aware object
+        booking_dt = timezone.make_aware(datetime.datetime.combine(booking.booking_date, booking.booking_time)) if timezone.is_naive(datetime.datetime.combine(booking.booking_date, booking.booking_time)) else datetime.datetime.combine(booking.booking_date, booking.booking_time)
         
-        # Determine email
-        customer_email = None
-        if booking.customer and booking.customer.email:
-            customer_email = booking.customer.email
-            
-        if customer_email:
-            send_mail(
-                subject=f"Booking Cancelled (No-Show): Token #{booking.token_number}",
-                message=(
-                    f"Hello {booking.guest_name or 'Valued Customer'},\n\n"
-                    f"Your appointment scheduled for {booking.booking_time.strftime('%I:%M %p')} has been automatically cancelled as you did not arrive within the 15-minute grace period.\n"
-                    f"Please re-book through the Hair Ways portal if you still need service.\n\n"
-                    f"Thank you!"
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[customer_email],
-                fail_silently=True
-            )
+        # Check if booking scheduled time is more than 15 minutes in the past
+        if booking_dt < (now - timedelta(minutes=15)):
+            booking.status = 'CANCELLED'
+            booking.save()
+            cancelled_count += 1
+
+            # Send cancellation email only for actually cancelled bookings
+            customer_email = None
+            if booking.customer and booking.customer.email:
+                customer_email = booking.customer.email
+
+            if customer_email:
+                send_mail(
+                    subject=f"Booking Cancelled (No-Show): Token #{booking.token_number}",
+                    message=(
+                        f"Hello {booking.guest_name or 'Valued Customer'},\n\n"
+                        f"Your appointment scheduled for {booking.booking_time.strftime('%I:%M %p')} has been automatically cancelled as you did not arrive within the 15-minute grace period.\n"
+                        f"Please re-book through the Hair Ways portal if you still need service.\n\n"
+                        f"Thank you!"
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[customer_email],
+                    fail_silently=True
+                )
             
     return f"Auto-cancelled {cancelled_count} overdue bookings."
 
@@ -182,24 +230,28 @@ def send_upcoming_booking_reminders():
     now = timezone.localtime()
     today_date = now.date()
     
-    # 30 minutes from now reference point
-    time_threshold = (now + timedelta(minutes=30)).time()
-    
-    upcoming_bookings = Booking.objects.filter(
+    # Add .select_related() and .prefetch_related() to fix N+1 queries
+    todays_bookings = Booking.objects.filter(
         booking_date=today_date,
-        booking_time__lte=time_threshold,
-        booking_time__gte=now.time(),
         status__in=['PENDING', 'CONFIRMED'],
         is_reminder_sent=False
-    )
+    ).select_related('employee', 'employee__user', 'customer').prefetch_related('items__service')
     
     reminded_count = 0
     
-    for booking in upcoming_bookings:
-        # Prevent duplicate sends
-        booking.is_reminder_sent = True
-        booking.save()
-        reminded_count += 1
+    for booking in todays_bookings:
+        if not booking.booking_time:
+            continue
+            
+        # Combine date + time into timezone aware object
+        booking_dt = timezone.make_aware(datetime.datetime.combine(booking.booking_date, booking.booking_time)) if timezone.is_naive(datetime.datetime.combine(booking.booking_date, booking.booking_time)) else datetime.datetime.combine(booking.booking_date, booking.booking_time)
+        
+        # Check if booking is within the next 30 minutes
+        if now <= booking_dt <= (now + timedelta(minutes=30)):
+            # Prevent duplicate sends
+            booking.is_reminder_sent = True
+            booking.save()
+            reminded_count += 1
         
         customer_email = None
         # Handle guest walkins or online customers

@@ -1,39 +1,48 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 
+
 class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.group_name = 'admin_notifications'
-        print(f"DEBUG_WS: Consumer connecting. Channel name: {self.channel_name}", flush=True)
+        self.role = self.scope['url_route']['kwargs']['role']
+        self.user_id = self.scope['url_route']['kwargs']['user_id']
 
-        await self.accept()
-        print("DEBUG_WS: Consumer accepted connection.", flush=True)
+        # Build the list of groups this connection should join
+        self.groups_list = []
+
+        if self.role in ('admin', 'manager'):
+            # Admins see everything
+            self.groups_list.append('admin_notifications')
+
+        elif self.role == 'employee':
+            # Employees get their own channel + global admin broadcast
+            self.groups_list.append(f'employee_{self.user_id}_notifications')
+            self.groups_list.append('admin_notifications')
+
+        elif self.role == 'customer':
+            # Customers only get their own channel
+            self.groups_list.append(f'customer_{self.user_id}_notifications')
+
+        print(f"WS: {self.role}/{self.user_id} joining groups: {self.groups_list}", flush=True)
 
         try:
-            # Join room group
-            await self.channel_layer.group_add(
-                self.group_name,
-                self.channel_name
-            )
-            print("DEBUG_WS: Group add success.", flush=True)
+            for group in self.groups_list:
+                await self.channel_layer.group_add(group, self.channel_name)
         except Exception as e:
-            print(f"DEBUG_WS: Error adding to group: {e}", flush=True)
+            print(f"WS: Error joining groups: {e}", flush=True)
+            return
+
+        await self.accept()
 
     async def disconnect(self, close_code):
-        print(f"DEBUG_WS: Consumer disconnecting. Code: {close_code}", flush=True)
-        # Leave room group
-        await self.channel_layer.group_discard(
-            self.group_name,
-            self.channel_name
-        )
+        for group in self.groups_list:
+            await self.channel_layer.group_discard(group, self.channel_name)
 
-    # Receive message from room group
+    # Handler called when group_send uses type='send_notification'
     async def send_notification(self, event):
-        message = event['message']
-        print(f"DEBUG_WS: Consumer received message from group: {message}", flush=True)
-
-        # Send message to WebSocket
         await self.send(text_data=json.dumps({
-            'message': message
+            'message': event.get('message', ''),
+            'booking_id': event.get('booking_id'),
+            'status': event.get('status'),
+            'action': event.get('action', 'refresh'),
         }))
-        print("DEBUG_WS: Message sent down the WebSocket to the client.", flush=True)

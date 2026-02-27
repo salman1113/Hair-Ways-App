@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { CheckCircle, Calendar, Clock, Home, Download } from 'lucide-react';
 import { generateTicketPDF } from '../utils/ticketGenerator';
+import { format12HourTime } from '../utils/timeFormat';
 import confetti from 'canvas-confetti';
 
 const BookingSuccessPage = () => {
@@ -91,7 +92,7 @@ const BookingSuccessPage = () => {
                 <div className="p-2 bg-[#C19D6C]/10 text-[#C19D6C] rounded-lg"><Clock size={18} /></div>
                 <div>
                   <p className="text-xs font-bold text-gray-500 uppercase">Time</p>
-                  <p className="font-bold text-white text-lg">{booking.booking_time}</p>
+                  <p className="font-bold text-white text-lg">{format12HourTime(booking.booking_time)}</p>
                 </div>
               </div>
             </div>

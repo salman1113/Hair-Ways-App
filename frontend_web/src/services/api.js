@@ -214,6 +214,13 @@ export const getEmployeeNotifications = async () => {
   return response.data;
 };
 
+// --- REVIEWS ---
+export const submitReview = async (reviewData) => {
+  // reviewData: { booking_id, rating, comment }
+  const response = await api.post('/accounts/reviews/create/', reviewData);
+  return response.data;
+};
+
 
 // --- BOOKINGS ---
 export const createBooking = async (bookingData) => {

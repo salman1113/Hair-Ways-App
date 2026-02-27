@@ -12,6 +12,7 @@ import {
 } from '../../services/api';
 import toast from 'react-hot-toast';
 import useWebSocketNotification from '../../hooks/useWebSocketNotification';
+import { format12HourTime } from '../../utils/timeFormat';
 
 // Circular Timer Component
 const TimerCircle = ({ startTime, durationMinutes }) => {
@@ -110,7 +111,7 @@ const EmployeeDashboard = () => {
     }, [activeTab, analyticsDate]);
 
     // WebSocket Integration: Auto-refresh data on new message
-    useWebSocketNotification((messageData) => {
+    useWebSocketNotification('employee', user?.id, (messageData) => {
         console.log("Live update via WebSocket!", messageData);
         // Refresh the queue and earnings, and notifications list
         fetchDashboardData();
@@ -361,7 +362,7 @@ const EmployeeDashboard = () => {
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2">
-                                                <span className="text-base font-black text-[#1A1A1A] block">{booking.booking_time}</span>
+                                                <span className="text-base font-black text-[#1A1A1A] block">{format12HourTime(booking.booking_time)}</span>
                                                 <span className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase tracking-wider ${booking.is_walk_in ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`}>
                                                     {booking.is_walk_in ? 'Walk-in' : 'Online'}
                                                 </span>
@@ -542,8 +543,8 @@ const EmployeeDashboard = () => {
                                 {a.is_late && <span className="text-[10px] text-red-500 font-bold uppercase">Late Arrival</span>}
                             </div>
                             <div className="text-right">
-                                <span className="text-xs font-bold text-gray-500 block">In: {a.check_in.substring(0, 5)}</span>
-                                <span className="text-xs font-bold text-gray-500">Out: {a.check_out ? a.check_out.substring(0, 5) : '--'}</span>
+                                <span className="text-xs font-bold text-gray-500 block">In: {format12HourTime(a.check_in)}</span>
+                                <span className="text-xs font-bold text-gray-500">Out: {a.check_out ? format12HourTime(a.check_out) : '--'}</span>
                             </div>
                         </div>
                     )) : <p className="text-xs text-gray-400 bg-gray-50 p-4 rounded-xl">No recent attendance records.</p>}

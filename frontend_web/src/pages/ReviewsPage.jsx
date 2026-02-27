@@ -13,7 +13,7 @@ const ReviewsPage = () => {
             {/* ================= 1. HERO SECTION ================= */}
             <section className="relative h-[40vh] md:h-[50vh] flex items-center justify-center overflow-hidden">
                 {/* Background Image */}
-                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1503951914875-befbb7470d03?q=80&w=1888&auto=format&fit=crop')] bg-cover bg-center bg-fixed"></div>
+                <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center bg-fixed"></div>
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-black/60"></div>
 

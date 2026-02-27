@@ -1,36 +1,45 @@
 import { useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
 
-const useWebSocketNotification = (onMessageReceived) => {
+/**
+ * Global WebSocket hook — connects to a role-specific channel.
+ *
+ * @param {string}   role             - 'admin' | 'employee' | 'customer'
+ * @param {number}   userId           - Current user's database ID
+ * @param {function} onMessageReceived - Callback fired on every WS message
+ */
+const useWebSocketNotification = (role, userId, onMessageReceived) => {
     const ws = useRef(null);
     const savedCallback = useRef(onMessageReceived);
 
-    // Remember the latest callback if it changes.
     useEffect(() => {
         savedCallback.current = onMessageReceived;
     }, [onMessageReceived]);
 
     useEffect(() => {
+        // Don't connect until we have both role and userId
+        if (!role || !userId) return;
+
         let reconnectTimeout;
         let mounted = true;
 
         const connect = () => {
-            if (!mounted) return; // Don't connect if already unmounted
+            if (!mounted) return;
 
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             let host = window.location.host;
 
-            // If we're hitting the Vite dev server (usually 5173), route to Django backend 8000
+            // Dev: redirect Vite dev server to Django backend
             if (host.includes('5173') || host.includes('localhost:') || host.includes('127.0.0.1:')) {
                 host = '127.0.0.1:8000';
             }
 
-            const wsUrl = `${protocol}//${host}/ws/notifications/`;
+            const wsUrl = `${protocol}//${host}/ws/notifications/${role}/${userId}/`;
 
             ws.current = new WebSocket(wsUrl);
 
             ws.current.onopen = () => {
-                console.log('WebSocket connection established');
+                console.log(`WS connected: ${role}/${userId}`);
             };
 
             ws.current.onmessage = (event) => {
@@ -51,35 +60,29 @@ const useWebSocketNotification = (onMessageReceived) => {
                         savedCallback.current(data);
                     }
                 } catch (error) {
-                    console.error("Error parsing WebSocket message:", error);
+                    console.error('WS message parse error:', error);
                 }
             };
 
             ws.current.onerror = (error) => {
-                console.error('WebSocket Error:', error);
+                console.error('WS error:', error);
             };
 
             ws.current.onclose = (event) => {
-                if (event.code === 1000 || !mounted) {
-                    console.log(`WebSocket closed cleanly (${event.code}).`);
-                    return; // Don't reconnect on intentional close or after unmount
-                }
-                console.log(`WebSocket connection lost (${event.code}). Reconnecting in 3s...`);
+                if (event.code === 1000 || !mounted) return;
+                console.log(`WS lost (${event.code}). Reconnecting in 3s...`);
                 reconnectTimeout = setTimeout(connect, 3000);
             };
         };
 
         connect();
 
-        // Cleanup on unmount
         return () => {
             mounted = false;
             clearTimeout(reconnectTimeout);
-            if (ws.current) {
-                ws.current.close(1000);
-            }
+            if (ws.current) ws.current.close(1000);
         };
-    }, []);
+    }, [role, userId]);
 
     return ws.current;
 };

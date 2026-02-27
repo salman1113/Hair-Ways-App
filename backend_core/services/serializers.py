@@ -33,11 +33,15 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = '__all__'
 
+class BulkServiceItemSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    price = serializers.DecimalField(max_digits=10, decimal_places=2)
+    duration = serializers.IntegerField(default=30)
+    description = serializers.CharField(required=False, allow_blank=True)
+
 class BulkServiceSerializer(serializers.Serializer):
     """
     Serializer to handle bulk creation of services under a category
     """
     category_name = serializers.CharField(max_length=50)
-    services = serializers.ListField(
-        child=serializers.DictField() 
-    )
+    services = BulkServiceItemSerializer(many=True)

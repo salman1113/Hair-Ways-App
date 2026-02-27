@@ -10,7 +10,8 @@ from .serializers import (
     UserSerializer, EmployeeProfileSerializer, AttendanceSerializer, 
     EmployeeCreationSerializer, UserRegistrationSerializer, PayrollSerializer,
     GoogleLoginSerializer, LoginSerializer, VerifyOTPSerializer,
-    ReviewSerializer, NotificationSerializer, PayoutHistorySerializer
+    ReviewSerializer, NotificationSerializer, PayoutHistorySerializer,
+    CreateReviewSerializer
 )
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -359,6 +360,20 @@ class EmployeeReviewsApi(APIView):
         serializer = ReviewSerializer(queryset, many=True)
         return Response(serializer.data)
 
+
+class CreateReviewApi(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = CreateReviewSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        review = serializer.save()
+        return Response(
+            ReviewSerializer(review).data,
+            status=status.HTTP_201_CREATED
+        )
+
 class EmployeeNotificationsApi(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -490,8 +505,9 @@ class GeneratePayrollApi(APIView):
                     status='PENDING'
                 )
                 
-                # 4. Reset Wallet (Commission Paid Out)
-                emp.wallet_balance = 0
+                # 4. Reset Wallet (Commission Paid Out safely using F expressions to avoid race conditions)
+                from django.db import models
+                emp.wallet_balance = models.F('wallet_balance') - commission
                 emp.save()
                 
                 generated_count += 1
@@ -543,7 +559,9 @@ class GoogleLoginApi(APIView):
                     email=email,
                     username=username,
                     role='CUSTOMER',
-                    password=get_random_string(length=32)
+                    password=get_random_string(length=32),
+                    is_email_verified=True,
+                    is_active=True
                 )
 
 
@@ -598,6 +616,11 @@ class SettlePayoutApi(APIView):
                 amount_paid=amount,
                 screenshot=screenshot
             )
+
+            # Deduct payout amount from wallet safely to avoid Double Salary bug
+            from django.db import models
+            profile.wallet_balance = models.F('wallet_balance') - amount
+            profile.save()
 
         serializer = PayoutHistorySerializer(payout)
         return Response({

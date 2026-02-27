@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Sum
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 
 class CustomUserManager(BaseUserManager):
@@ -81,14 +82,14 @@ class EmployeeProfile(models.Model):
 
     @property
     def pending_wallet_balance(self):
-        # Calculate pending balance dynamically from unpaid completed bookings
+        # Calculate pending balance dynamically from unpaid completed bookings using DB aggregation
         from bookings.models import Booking
         unpaid_bookings = Booking.objects.filter(
             employee=self, 
             status='COMPLETED', 
             is_payout_settled=False
         )
-        total_unpaid = sum(job.total_price for job in unpaid_bookings)
+        total_unpaid = unpaid_bookings.aggregate(total=Sum('total_price'))['total'] or 0
         return float(total_unpaid) * (float(self.commission_percentage) / 100)
 
     def __str__(self):
@@ -172,8 +173,10 @@ class Payroll(models.Model):
 class Review(models.Model):
     """
     Customer Reviews for explicit Stylists/Employees.
+    Linked to a specific Booking via OneToOne for per-token tracking.
     """
     employee = models.ForeignKey(EmployeeProfile, on_delete=models.CASCADE, related_name='reviews')
+    booking = models.OneToOneField('bookings.Booking', on_delete=models.CASCADE, related_name='review', null=True, blank=True)
     customer_name = models.CharField(max_length=100)
     rating = models.DecimalField(max_digits=3, decimal_places=1, default=5.0)
     comment = models.TextField(blank=True)

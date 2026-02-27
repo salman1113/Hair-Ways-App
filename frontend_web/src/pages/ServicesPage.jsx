@@ -5,7 +5,6 @@ import {
   Calendar, Clock, ShieldCheck, Star
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import Footer from '../components/Footer';
 
 // --- ANIMATION VARIANTS ---
 const fadeInUp = {

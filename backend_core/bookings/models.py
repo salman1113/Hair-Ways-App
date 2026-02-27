@@ -56,11 +56,14 @@ class Booking(models.Model):
         ordering = ['-created_at']
         unique_together = [
             ('booking_date', 'token_number'),
-            ('employee', 'booking_date', 'booking_time')  # Prevent double-booking: An employee cannot have two bookings at the same time
         ]
-
-    def __str__(self):
-        return f"Token #{self.token_number} - {self.status}"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['employee', 'booking_date', 'booking_time'],
+                condition=~models.Q(status='CANCELLED'),
+                name='unique_active_booking_time'
+            )
+        ]
 
     def __str__(self):
         return f"Token #{self.token_number} - {self.status}"

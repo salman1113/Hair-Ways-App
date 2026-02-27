@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from datetime import datetime, date, timedelta
 from .models import Booking, BookingItem
 from .serializers import BookingSerializer
+from .tasks import send_cancellation_emails
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
@@ -66,19 +67,12 @@ class BookingListCreateApi(APIView):
             booking_date = serializer.validated_data.get('booking_date')
 
             # --- Sequential Token Logic ---
+            # Lock the table/rows for today to prevent race conditions during count
             daily_bookings = Booking.objects.filter(booking_date=booking_date).select_for_update()
-            current_max = 0
-            existing_tokens = list(Booking.objects.filter(booking_date=booking_date).values_list('token_number', flat=True))
             
-            for token in existing_tokens:
-                if token and token.startswith('T-'):
-                    try:
-                        num = int(token.split('-')[1])
-                        if num > current_max: current_max = num
-                    except (ValueError, IndexError):
-                         pass
-            
-            token = f"T-{current_max + 1}"
+            # Use database count instead of loading all strings and parsing manually
+            daily_count = daily_bookings.count()
+            token = f"T-{daily_count + 1}"
             
             # --- Assignment Logic ---
             if request.user.role == 'CUSTOMER':
@@ -163,6 +157,7 @@ class BookingDetailApi(APIView):
                 if booking.status == 'IN_PROGRESS' and booking.employee:
                      booking.employee.is_available = True
                      booking.employee.save()
+                send_cancellation_emails.delay(booking.id)
 
             booking.status = new_status
         
@@ -190,6 +185,7 @@ class BookingCancelApi(APIView):
         
         booking.status = 'CANCELLED'
         booking.save()
+        send_cancellation_emails.delay(booking.id)
         return Response({'status': 'Booking cancelled'})
 
 class BookingRescheduleApi(APIView):
@@ -272,8 +268,7 @@ class FinishJobApi(APIView):
                 booking.employee.is_available = True
                 if booking.employee.commission_rate > 0:
                     commission = (booking.total_price * booking.employee.commission_rate) / 100
-                    booking.employee.refresh_from_db()
-                    booking.employee.wallet_balance += commission
+                    booking.employee.wallet_balance = F('wallet_balance') + commission
                 booking.employee.save()
                 
             return Response({"status": "Job Finished"})

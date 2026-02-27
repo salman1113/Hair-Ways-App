@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getEmployees, deleteEmployee, updateEmployee, getEmployeeAttendance } from '../../services/api';
+import { getEmployees, updateEmployee, deleteEmployee, getEmployeeAttendance } from '../../services/api';
+import { format12HourTime } from '../../utils/timeFormat';
 import api from '../../services/api';
 import { UserPlus, Search, Trash2, Edit, Eye, X, Clock, CheckCircle, XCircle, Loader2, Star, Briefcase, User, IndianRupee } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -165,7 +166,7 @@ const AdminEmployees = () => {
                             value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
                     </div>
                     <button onClick={() => { setIsEditing(false); setFormData(initialForm); setShowFormModal(true); }}
-                        className="bg-[#C19D6C] text-white px-5 py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 transition hover:bg-[#a6865c] w-full sm:w-auto text-sm">
+                        className="bg-[#C19D6C] text-white px-5 py-2.5 rounded-lg font-medium flex items-center justify-center gap-2 transition-all hover:bg-[#a6865c] shadow-sm hover:shadow-md w-full sm:w-auto text-sm">
                         <UserPlus size={16} /> Add Staff
                     </button>
                 </div>
@@ -186,7 +187,7 @@ const AdminEmployees = () => {
                                     <tr>
                                         <th className="p-4 md:p-5">Employee</th>
                                         <th className="p-4 md:p-5">Role & Shift</th>
-                                        <th className="p-4 md:p-5">Stats</th>
+                                        <th className="p-4 md:p-5">Wallet & Stats</th>
                                         <th className="p-4 md:p-5">Status</th>
                                         <th className="p-4 md:p-5 text-center">Actions</th>
                                     </tr>
@@ -196,11 +197,11 @@ const AdminEmployees = () => {
                                         <tr key={emp.id} className="hover:bg-gray-50/80 transition">
                                             <td className="p-4 md:p-5">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-[#1A1A1A] text-[#C19D6C] rounded-full flex items-center justify-center text-sm font-bold uppercase">
+                                                    <div className="w-10 h-10 bg-[#C19D6C]/20 text-[#C19D6C] rounded-full flex items-center justify-center text-sm font-bold uppercase">
                                                         {emp.user_details?.username?.[0]}
                                                     </div>
                                                     <div>
-                                                        <p className="font-semibold text-black">{emp.user_details?.username}</p>
+                                                        <p className="font-semibold text-black tracking-tight">{emp.user_details?.username}</p>
                                                         <p className="text-[11px] text-gray-400 tracking-wide">{emp.user_details?.email}</p>
                                                     </div>
                                                 </div>
@@ -208,34 +209,39 @@ const AdminEmployees = () => {
                                             <td className="p-4 md:p-5">
                                                 <p className="font-medium text-gray-700">{emp.job_title || 'Unassigned'}</p>
                                                 <p className="text-[10px] text-gray-400 font-medium mt-1 tracking-wider uppercase flex items-center gap-1">
-                                                    <Clock size={10} /> {emp.shift_start?.slice(0, 5) || '--'} - {emp.shift_end?.slice(0, 5) || '--'}
+                                                    <Clock size={10} /> {format12HourTime(emp.shift_start)} - {format12HourTime(emp.shift_end)}
                                                 </p>
                                             </td>
                                             <td className="p-4 md:p-5">
-                                                <div className="flex flex-col gap-1 text-[10px] font-medium uppercase tracking-wider">
-                                                    <span className="flex items-center gap-1 text-gray-500"><Star size={10} className="text-amber-500" /> {emp.rating} ({emp.review_count})</span>
-                                                    <span className="text-gray-400">{emp.years_of_experience} Yrs Exp</span>
+                                                <div className="flex flex-col gap-1.5">
+                                                    <span className={`text-sm tracking-wide ${emp.wallet_balance > 0 ? 'text-emerald-600 font-bold' : 'text-gray-500 font-medium'}`}>
+                                                        ₹{emp.wallet_balance || '0.00'}
+                                                    </span>
+                                                    <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider">
+                                                        <span className="flex items-center gap-1 text-gray-500"><Star size={10} className="text-[#C19D6C]" /> {emp.rating}</span>
+                                                        <span className="text-gray-400">| {emp.years_of_experience} Yrs</span>
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td className="p-4 md:p-5">
                                                 {emp.is_available ?
-                                                    <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-lg text-[10px] font-semibold inline-flex items-center gap-1 tracking-wider uppercase border border-emerald-200"><CheckCircle size={10} /> Active</span> :
-                                                    <span className="bg-red-50 text-red-400 px-3 py-1 rounded-lg text-[10px] font-semibold inline-flex items-center gap-1 tracking-wider uppercase border border-red-100"><XCircle size={10} /> Off</span>
+                                                    <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-lg text-[10px] font-semibold inline-flex items-center gap-1.5 tracking-wider uppercase border border-emerald-200"><CheckCircle size={10} /> Available</span> :
+                                                    <span className="bg-red-50 text-red-600 px-3 py-1 rounded-lg text-[10px] font-semibold inline-flex items-center gap-1.5 tracking-wider uppercase border border-red-200"><XCircle size={10} /> Offline</span>
                                                 }
                                             </td>
                                             <td className="p-4 md:p-5 text-center">
-                                                <div className="flex items-center justify-center gap-1.5">
-                                                    <button onClick={() => navigate(`/admin/employees/${emp.id}`)} className="p-2 border border-gray-200 text-emerald-600 bg-white rounded-lg hover:bg-emerald-50 hover:text-emerald-700 transition" title="Financial Details">
-                                                        <IndianRupee size={15} />
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button onClick={() => navigate(`/admin/employees/${emp.id}`)} className="p-1.5 text-gray-400 hover:text-[#C19D6C] transition" title="Financial Details">
+                                                        <IndianRupee size={16} />
                                                     </button>
-                                                    <button onClick={() => { setSelectedViewEmp(emp); loadViewAttendance(emp.id); }} className="p-2 border border-gray-200 text-blue-600 bg-white rounded-lg hover:bg-blue-50 hover:text-blue-700 transition" title="View Details">
-                                                        <Eye size={15} />
+                                                    <button onClick={() => { setSelectedViewEmp(emp); loadViewAttendance(emp.id); }} className="p-1.5 text-gray-400 hover:text-[#C19D6C] transition" title="View Details">
+                                                        <Eye size={16} />
                                                     </button>
-                                                    <button onClick={() => handleEdit(emp)} className="p-2 border border-gray-200 text-amber-600 bg-white rounded-lg hover:bg-amber-50 hover:text-amber-700 transition" title="Edit Employee">
-                                                        <Edit size={15} />
+                                                    <button onClick={() => handleEdit(emp)} className="p-1.5 text-gray-400 hover:text-[#C19D6C] transition" title="Edit Employee">
+                                                        <Edit size={16} />
                                                     </button>
-                                                    <button onClick={() => handleDelete(emp.id)} className="p-2 border border-gray-200 text-red-400 bg-white rounded-lg hover:bg-red-50 hover:text-red-600 transition" title="Delete Employee">
-                                                        <Trash2 size={15} />
+                                                    <button onClick={() => handleDelete(emp.id)} className="p-1.5 text-gray-400 hover:text-red-500 transition" title="Delete Employee">
+                                                        <Trash2 size={16} />
                                                     </button>
                                                 </div>
                                             </td>
@@ -251,9 +257,9 @@ const AdminEmployees = () => {
                 {showFormModal && (
                     <div className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center z-[100] p-0 md:p-4 backdrop-blur-sm">
                         <div className="bg-white mx-auto rounded-t-2xl md:rounded-2xl w-full max-w-2xl relative animate-fade-in-up flex flex-col max-h-[90vh] shadow-2xl">
-                            <div className="p-5 md:p-6 border-b border-gray-200 flex justify-between items-center shrink-0">
-                                <h2 className="text-lg font-bold text-black">{isEditing ? 'Edit Profile' : 'New Employee'}</h2>
-                                <button onClick={() => setShowFormModal(false)} className="text-gray-400 hover:text-black transition"><X size={20} /></button>
+                            <div className="bg-black p-5 md:p-6 flex justify-between items-center shrink-0 rounded-t-2xl md:rounded-t-2xl border-b border-[#333]">
+                                <h2 className="text-lg font-bold text-white tracking-wide">{isEditing ? 'Edit Profile' : 'New Employee'}</h2>
+                                <button onClick={() => setShowFormModal(false)} className="text-gray-400 hover:text-white transition"><X size={20} /></button>
                             </div>
 
                             <form onSubmit={handleSubmit} className="p-4 md:p-6 overflow-y-auto w-full space-y-5">
@@ -351,7 +357,7 @@ const AdminEmployees = () => {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-4">
                                         <div><span className="text-gray-400 block text-[10px] font-medium tracking-wider uppercase mb-1">Email</span> <span className="font-medium text-black">{selectedViewEmp.user_details?.email}</span></div>
                                         <div><span className="text-gray-400 block text-[10px] font-medium tracking-wider uppercase mb-1">Phone</span> <span className="font-medium text-black">{selectedViewEmp.user_details?.phone_number || 'N/A'}</span></div>
-                                        <div><span className="text-gray-400 block text-[10px] font-medium tracking-wider uppercase mb-1">Shift Timings</span> <span className="font-medium text-black">{selectedViewEmp.shift_start?.slice(0, 5) || 'N/A'} - {selectedViewEmp.shift_end?.slice(0, 5) || 'N/A'}</span></div>
+                                        <div><span className="text-gray-400 block text-[10px] font-medium tracking-wider uppercase mb-1">Shift Timings</span> <span className="font-medium text-black">{format12HourTime(selectedViewEmp.shift_start)} - {format12HourTime(selectedViewEmp.shift_end)}</span></div>
                                         <div><span className="text-gray-400 block text-[10px] font-medium tracking-wider uppercase mb-1">Status</span> {selectedViewEmp.is_available ? <span className="text-black font-semibold">Available</span> : <span className="text-gray-400 font-medium">Unavailable</span>}</div>
                                     </div>
                                     {selectedViewEmp.bio && (
@@ -384,8 +390,8 @@ const AdminEmployees = () => {
                                                         {attendanceData[selectedViewEmp.id]?.map(att => (
                                                             <tr key={att.id} className="hover:bg-white transition">
                                                                 <td className="p-3 font-medium text-gray-700 text-xs">{att.date}</td>
-                                                                <td className="p-3 text-gray-600 font-medium text-xs">{att.check_in ? att.check_in.slice(0, 5) : '--'}</td>
-                                                                <td className="p-3 text-gray-600 font-medium text-xs">{att.check_out ? att.check_out.slice(0, 5) : '--'}</td>
+                                                                <td className="p-3 text-gray-600 font-medium text-xs">{format12HourTime(att.check_in)}</td>
+                                                                <td className="p-3 text-gray-600 font-medium text-xs">{att.check_out ? format12HourTime(att.check_out) : '--'}</td>
                                                             </tr>
                                                         ))}
                                                     </tbody>

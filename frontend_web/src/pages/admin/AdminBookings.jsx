@@ -1,19 +1,26 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { getQueue, updateBookingStatus, getEmployees } from '../../services/api';
 import {
     Calendar, Search, X, CheckCircle,
     PlayCircle, XCircle, FileText, User, Clock, ChevronRight, UserCheck, Loader2,
-    Hash, AlertCircle, IndianRupee
+    Hash, AlertCircle, IndianRupee, Star
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useWebSocketNotification from '../../hooks/useWebSocketNotification';
 import { SkeletonTable } from '../../components/SkeletonRow';
+import LiveTimer from '../../components/LiveTimer';
+import { format12HourTime } from '../../utils/timeFormat';
 
 
 const AdminBookings = () => {
     const [bookings, setBookings] = useState([]);
     const [filteredBookings, setFilteredBookings] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    // Infinite Scroll
+    const [visibleCount, setVisibleCount] = useState(15);
+    const loaderRef = useRef(null);
 
     // Date Filter (Default: Today)
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
@@ -36,7 +43,8 @@ const AdminBookings = () => {
     }, [selectedDate]);
 
     // WEBSOCKET AUTO-REFRESH
-    useWebSocketNotification(() => {
+    const { user } = useAuth();
+    useWebSocketNotification('admin', user?.id, () => {
         fetchBookings();
     });
 
@@ -70,7 +78,23 @@ const AdminBookings = () => {
             });
         }
         setFilteredBookings(result);
+        setVisibleCount(15); // Reset scroll on filter change
     }, [bookings, statusFilter, searchQuery]);
+
+    // Invisible Pagination Observer
+    useEffect(() => {
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting) {
+                setVisibleCount((prev) => prev + 15);
+            }
+        }, { rootMargin: "100px" });
+
+        if (loaderRef.current) {
+            observer.observe(loaderRef.current);
+        }
+
+        return () => observer.disconnect();
+    }, [filteredBookings, visibleCount]);
 
     // ═══════════════════════════════════════════════════════
     // 3. QUICK STATS — Computed from filtered bookings
@@ -269,55 +293,69 @@ const AdminBookings = () => {
                                 ) : filteredBookings.length === 0 ? (
                                     <tr><td colSpan="7" className="p-10 text-center text-gray-400 text-sm">No bookings found for this date.</td></tr>
                                 ) : (
-                                    filteredBookings.map((b) => {
-                                        const name = getCustomerName(b);
-                                        return (
-                                            <tr key={b.id} className="hover:bg-gray-50/80 transition cursor-pointer" onClick={() => { setSelectedBooking(b); setAssignEmployeeId(b.employee || ''); }}>
-                                                <td className="p-4 md:p-5">
-                                                    <span className="font-bold text-black bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-lg text-sm">{b.token_number}</span>
-                                                </td>
-                                                <td className="p-4 md:p-5 font-medium text-gray-600">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <Clock size={13} className="text-gray-400" /> {b.booking_time}
-                                                    </div>
-                                                </td>
-                                                {/* 2. CUSTOMER AVATAR + Name */}
-                                                <td className="p-4 md:p-5">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-9 h-9 bg-[#C19D6C]/20 text-[#C19D6C] rounded-full flex items-center justify-center text-sm font-bold shrink-0">
-                                                            {getInitial(name)}
+                                    <>
+                                        {filteredBookings.slice(0, visibleCount).map((b) => {
+                                            const name = getCustomerName(b);
+                                            return (
+                                                <tr key={b.id} className="hover:bg-gray-50/80 transition cursor-pointer" onClick={() => { setSelectedBooking(b); setAssignEmployeeId(b.employee || ''); }}>
+                                                    <td className="p-4 md:p-5">
+                                                        <span className="font-bold text-black bg-gray-100 border border-gray-200 px-3 py-1.5 rounded-lg text-sm">{b.token_number}</span>
+                                                    </td>
+                                                    <td className="p-4 md:p-5 font-medium text-gray-600">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Clock size={13} className="text-gray-400" /> {format12HourTime(b.booking_time)}
                                                         </div>
-                                                        <div>
-                                                            <div className="flex items-center gap-2">
-                                                                <p className="font-semibold text-black">{name}</p>
-                                                                <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${b.is_walk_in ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
-                                                                    {b.is_walk_in ? 'Walk-in' : 'Online'}
-                                                                </span>
+                                                    </td>
+                                                    {/* 2. CUSTOMER AVATAR + Name */}
+                                                    <td className="p-4 md:p-5">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-9 h-9 bg-[#C19D6C]/20 text-[#C19D6C] rounded-full flex items-center justify-center text-sm font-bold shrink-0">
+                                                                {getInitial(name)}
                                                             </div>
-                                                            <p className="text-xs text-gray-400 mt-0.5">{b.phone_number}</p>
+                                                            <div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <p className="font-semibold text-black">{name}</p>
+                                                                    <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${b.is_walk_in ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+                                                                        {b.is_walk_in ? 'Walk-in' : 'Online'}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-xs text-gray-400 mt-0.5">{b.phone_number}</p>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </td>
-                                                <td className="p-4 md:p-5 text-gray-600 font-medium">{b.employee_details?.user_details?.username || <span className="text-gray-300 italic">Unassigned</span>}</td>
-                                                <td className="p-4 md:p-5">
-                                                    <p className="font-medium text-gray-700 truncate max-w-[150px]">
-                                                        {b.items.map(i => i.service_name).join(', ')}
-                                                    </p>
-                                                    <p className="text-[10px] text-gray-500 font-semibold tracking-wider mt-0.5">₹{b.total_price}</p>
-                                                </td>
-                                                <td className="p-4 md:p-5">
-                                                    <span className={`px-3 py-1.5 rounded-full text-[10px] font-semibold tracking-wider uppercase border ${getStatusColor(b.status)}`}>
-                                                        {b.status.replace('_', ' ')}
-                                                    </span>
-                                                </td>
-                                                <td className="p-4 md:p-5 text-center">
-                                                    <button className="text-[#C19D6C] hover:bg-[#C19D6C]/10 p-2.5 rounded-lg transition border border-[#C19D6C]/30 hover:border-[#C19D6C]">
-                                                        <ChevronRight size={16} strokeWidth={2.5} />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
+                                                    </td>
+                                                    <td className="p-4 md:p-5 text-gray-600 font-medium">{b.employee_details?.user_details?.username || <span className="text-gray-300 italic">Unassigned</span>}</td>
+                                                    <td className="p-4 md:p-5">
+                                                        <p className="font-medium text-gray-700 truncate max-w-[150px]">
+                                                            {b.items.map(i => i.service_name).join(', ')}
+                                                        </p>
+                                                        <p className="text-[10px] text-gray-500 font-semibold tracking-wider mt-0.5">₹{b.total_price}</p>
+                                                    </td>
+                                                    <td className="p-4 md:p-5">
+                                                        <div className="flex flex-col gap-1">
+                                                            <span className={`px-3 py-1.5 rounded-full text-[10px] font-semibold tracking-wider uppercase border w-fit ${getStatusColor(b.status)}`}>
+                                                                {b.status.replace('_', ' ')}
+                                                            </span>
+                                                            {b.status === 'IN_PROGRESS' && b.actual_start_time && (
+                                                                <LiveTimer
+                                                                    startTime={b.actual_start_time}
+                                                                    durationMinutes={b.items?.reduce((acc, item) => acc + (item.service_duration || 30), 0) || 30}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="p-4 md:p-5 text-center">
+                                                        <button className="text-[#C19D6C] hover:bg-[#C19D6C]/10 p-2.5 rounded-lg transition border border-[#C19D6C]/30 hover:border-[#C19D6C]">
+                                                            <ChevronRight size={16} strokeWidth={2.5} />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                        {/* Invisible Loader Row */}
+                                        {visibleCount < filteredBookings.length && (
+                                            <tr ref={loaderRef} style={{ height: '10px' }}><td colSpan="7"></td></tr>
+                                        )}
+                                    </>
                                 )}
                             </tbody>
                         </table>
@@ -351,7 +389,15 @@ const AdminBookings = () => {
                                 <span className="font-semibold text-sm uppercase flex items-center gap-2">
                                     <Clock size={16} /> Status
                                 </span>
-                                <span className="font-bold text-sm">{selectedBooking.status.replace('_', ' ')}</span>
+                                <div className="flex items-center gap-3">
+                                    <span className="font-bold text-sm">{selectedBooking.status.replace('_', ' ')}</span>
+                                    {selectedBooking.status === 'IN_PROGRESS' && selectedBooking.actual_start_time && (
+                                        <LiveTimer
+                                            startTime={selectedBooking.actual_start_time}
+                                            durationMinutes={selectedBooking.items?.reduce((acc, item) => acc + (item.service_duration || 30), 0) || 30}
+                                        />
+                                    )}
+                                </div>
                             </div>
 
                             {/* Customer Info */}
@@ -432,9 +478,33 @@ const AdminBookings = () => {
                                 </div>
                             </div>
 
+                            {/* Customer Rating — Show if review exists */}
+                            {selectedBooking.review && (
+                                <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-200/50 mb-6">
+                                    <h4 className="text-xs font-semibold text-gray-400 uppercase mb-3 flex items-center gap-2">
+                                        <Star size={14} className="text-amber-500" /> Customer Rating
+                                    </h4>
+                                    <div className="flex items-center gap-1 mb-2">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <Star
+                                                key={star}
+                                                size={20}
+                                                className={star <= Math.round(selectedBooking.review.rating) ? 'text-amber-400' : 'text-gray-200'}
+                                                fill={star <= Math.round(selectedBooking.review.rating) ? 'currentColor' : 'none'}
+                                            />
+                                        ))}
+                                        <span className="ml-2 text-sm font-bold text-amber-700">{selectedBooking.review.rating}/5</span>
+                                    </div>
+                                    {selectedBooking.review.comment && (
+                                        <p className="text-sm text-gray-600 italic">"{selectedBooking.review.comment}"</p>
+                                    )}
+                                    <p className="text-[10px] text-gray-400 mt-2">— {selectedBooking.review.customer_name}</p>
+                                </div>
+                            )}
+
                             {/* Actions */}
                             <div className="grid grid-cols-1 gap-3">
-                                {['CONFIRMED'].includes(selectedBooking.status) && (
+                                {['PENDING', 'CONFIRMED'].includes(selectedBooking.status) && (
                                     <button
                                         onClick={() => handleStatusChange(selectedBooking.id, 'IN_PROGRESS')}
                                         className="w-full py-3.5 bg-[#C19D6C] text-white rounded-xl font-semibold flex items-center justify-center gap-2 hover:bg-[#a6865c] transition"

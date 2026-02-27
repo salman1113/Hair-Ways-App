@@ -6,14 +6,14 @@ import AdminChatDrawer from './AdminChatDrawer';
 import useWebSocketNotification from '../hooks/useWebSocketNotification';
 
 const AdminLayout = () => {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
 
   // Listen for WebSocket notifications
-  useWebSocketNotification(() => {
-    console.log("WebSocket event received in AdminLayout. You could trigger a global state refresh here if needed.");
+  useWebSocketNotification('admin', user?.id, () => {
+    console.log("WebSocket event received in AdminLayout.");
   });
 
   const menuItems = [

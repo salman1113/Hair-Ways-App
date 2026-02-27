@@ -93,13 +93,15 @@ const AppContent = () => {
   if (loading) return <Loader />;
 
   const isDashboard = location.pathname.startsWith('/admin') || location.pathname.startsWith('/employee');
+  const isAuthPage = ['/login', '/signup', '/verify-email', '/admin/verify'].includes(location.pathname);
+  const hideChrome = isDashboard || isAuthPage;
 
   return (
     <>
       <Toaster position="top-right" toastOptions={{ className: 'z-[9999]', duration: 4000 }} />
-      {pageLoading && !isDashboard && <Loader />}
-      {!isDashboard && <Navbar />}
-      {!isDashboard && <CustomerChatWidget />}
+      {pageLoading && !hideChrome && <Loader />}
+      {!hideChrome && <Navbar />}
+      {!hideChrome && <CustomerChatWidget />}
 
       {/* ... rest of the code ... */}
 
@@ -143,7 +145,7 @@ const AppContent = () => {
             <Route path="/employee/*" element={<EmployeeRoute><EmployeeDashboard /></EmployeeRoute>} />
           </Routes>
         </main>
-        {!isDashboard && <Footer />}
+        {!hideChrome && <Footer />}
       </div>
     </>
   );

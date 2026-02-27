@@ -5,6 +5,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from .models import Service, Category, Product
+from django.db.models import ProtectedError
 from .serializers import (
     ServiceSerializer, CategorySerializer, ProductSerializer, 
     BulkServiceSerializer
@@ -20,7 +21,7 @@ class CategoryListCreateApi(APIView):
     permission_classes = [IsAdminOrReadOnly]
 
     def get(self, request):
-        queryset = Category.objects.prefetch_related('services').all()
+        queryset = Category.objects.all()
         serializer = CategorySerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -52,9 +53,15 @@ class CategoryDetailApi(APIView):
 
     def delete(self, request, pk):
         category = self.get_object(pk)
-        category.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
+        try:
+            category.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            return Response(
+                {"error": "Cannot delete this category because it contains services tied to existing bookings."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
 # --- SERVICE APIS ---
 
 class ServiceListApi(APIView):
@@ -98,9 +105,18 @@ class ServiceDetailApi(APIView):
 
     def delete(self, request, pk):
         service = self.get_object(pk)
-        service.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
+        try:
+            service.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except ProtectedError:
+            # Soft delete logic
+            service.is_active = False
+            service.save()
+            return Response(
+                {"message": "Service is tied to past bookings. It has been deactivated instead of deleted and will no longer appear for new bookings."}, 
+                status=status.HTTP_200_OK
+            )
+            
 class BulkServiceCreateApi(APIView):
     permission_classes = [IsAdminOrReadOnly]
 

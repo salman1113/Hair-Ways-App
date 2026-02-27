@@ -4,6 +4,16 @@ from services.models import Service
 from accounts.serializers import UserSerializer, EmployeeProfileSerializer
 from datetime import datetime, timedelta, date
 
+
+class ReviewReadSerializer(serializers.Serializer):
+    """Lightweight read-only serializer for review data nested inside BookingSerializer."""
+    id = serializers.IntegerField(read_only=True)
+    rating = serializers.DecimalField(max_digits=3, decimal_places=1, read_only=True)
+    comment = serializers.CharField(read_only=True)
+    customer_name = serializers.CharField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
+
+
 class BookingItemSerializer(serializers.ModelSerializer):
     service_name = serializers.CharField(source='service.name', read_only=True)
     service_duration = serializers.IntegerField(source='service.duration_minutes', read_only=True)
@@ -17,6 +27,7 @@ class BookingSerializer(serializers.ModelSerializer):
     customer_details = UserSerializer(source='customer', read_only=True)
     employee_details = EmployeeProfileSerializer(source='employee', read_only=True)
     service_ids = serializers.ListField(child=serializers.IntegerField(), write_only=True)
+    review = ReviewReadSerializer(read_only=True)
 
     class Meta:
         model = Booking
@@ -28,7 +39,8 @@ class BookingSerializer(serializers.ModelSerializer):
             'booking_date', 'booking_time', 'status',
             'estimated_start_time', 'actual_start_time', 'actual_end_time',
             'total_price', 'created_at',
-            'items', 'service_ids'
+            'items', 'service_ids',
+            'review'
         ]
         read_only_fields = ['token_number', 'total_price', 'created_at', 'status', 'actual_start_time', 'actual_end_time']
         validators = []  # Bypass DRF UniqueTogetherValidator to use custom validate() messages
@@ -68,19 +80,21 @@ class BookingSerializer(serializers.ModelSerializer):
         if request and hasattr(request, 'user') and request.user.is_authenticated:
             user = request.user
             
-            # Rule 1: Same-Time Clash Prevention
-            if Booking.objects.filter(customer=user, booking_date=booking_date, booking_time=booking_time).exclude(status='CANCELLED').exists():
-                raise serializers.ValidationError({
-                    "error": "Double Booking",
-                    "message": "you have a booking same this time"
-                })
+            # Admins and Employees should bypass strict daily limits when adding walk-ins
+            if user.role == 'CUSTOMER':
+                # Rule 1: Same-Time Clash Prevention
+                if Booking.objects.filter(customer=user, booking_date=booking_date, booking_time=booking_time).exclude(status='CANCELLED').exists():
+                    raise serializers.ValidationError({
+                        "error": "Double Booking",
+                        "message": "you have a booking same this time"
+                    })
 
-            # Rule 2: Maximum 2 Bookings Per Day
-            if Booking.objects.filter(customer=user, booking_date=booking_date).exclude(status='CANCELLED').count() >= 2:
-                raise serializers.ValidationError({
-                    "error": "Limit Reached",
-                    "message": "You have reached the maximum limit of 2 bookings for this day."
-                })
+                # Rule 2: Maximum 2 Bookings Per Day
+                if Booking.objects.filter(customer=user, booking_date=booking_date).exclude(status='CANCELLED').count() >= 2:
+                    raise serializers.ValidationError({
+                        "error": "Limit Reached",
+                        "message": "You have reached the maximum limit of 2 bookings for this day."
+                    })
 
         if employee and booking_date and booking_time:
             req_duration = 0

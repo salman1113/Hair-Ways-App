@@ -8,7 +8,8 @@ from .views import (
     CustomLoginApi, VerifyRegistrationOTPApi, VerifyAdminLoginOTPApi,
     CustomTokenRefreshView,
     MyEmployeeProfileApi, EmployeeReviewsApi, EmployeeNotificationsApi,
-    SettlePayoutApi, PayoutHistoryListApi
+    SettlePayoutApi, PayoutHistoryListApi,
+    CreateReviewApi
 )
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
@@ -32,6 +33,9 @@ urlpatterns = [
     path('employees/<int:pk>/', EmployeeDetailApi.as_view(), name='employee-detail'),
     path('employees/me/reviews/', EmployeeReviewsApi.as_view(), name='employee-reviews'),
     path('employees/me/notifications/', EmployeeNotificationsApi.as_view(), name='employee-notifications'),
+
+    # Reviews
+    path('reviews/create/', CreateReviewApi.as_view(), name='create-review'),
     
     # Attendance
     path('attendance/', AttendanceListApi.as_view(), name='attendance-list'),

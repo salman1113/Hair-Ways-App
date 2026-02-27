@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { getMyBookings, cancelBooking, getUserProfile, updateUserProfile } from '../services/api';
+import { getMyBookings, cancelBooking, getUserProfile, updateUserProfile, submitReview } from '../services/api';
 import { generateTicketPDF } from '../utils/ticketGenerator';
 import { Loader2, Calendar, Clock, User, Scissors, LogOut, Ticket, XCircle, Edit, Crown, Star, Sparkles, ChevronRight, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import StatsCard from '../components/profile/StatsCard';
 import ProfileEditModal from '../components/profile/ProfileEditModal';
 import toast from 'react-hot-toast';
+import useWebSocketNotification from '../hooks/useWebSocketNotification';
+import { format12HourTime } from '../utils/timeFormat';
 
 const ProfilePage = () => {
     const { user, logout } = useAuth();
@@ -18,9 +20,21 @@ const ProfilePage = () => {
     const [showEditModal, setShowEditModal] = useState(false);
     const [activeTab, setActiveTab] = useState('upcoming');
 
+    // Review Modal State
+    const [reviewModal, setReviewModal] = useState(null); // booking object or null
+    const [reviewRating, setReviewRating] = useState(0);
+    const [reviewHover, setReviewHover] = useState(0);
+    const [reviewComment, setReviewComment] = useState('');
+    const [reviewSubmitting, setReviewSubmitting] = useState(false);
+
     useEffect(() => {
         fetchData();
     }, []);
+
+    // WEBSOCKET AUTO-REFRESH — customer gets live updates
+    useWebSocketNotification('customer', user?.id, () => {
+        fetchData();
+    });
 
     const fetchData = async () => {
         try {
@@ -57,6 +71,29 @@ const ProfilePage = () => {
         generateTicketPDF(booking);
     };
 
+    const handleSubmitReview = async () => {
+        if (reviewRating === 0) return toast.error('Please select a rating');
+        setReviewSubmitting(true);
+        try {
+            await submitReview({
+                booking_id: reviewModal.id,
+                rating: reviewRating,
+                comment: reviewComment
+            });
+            toast.success('Thank you for your review!');
+            setReviewModal(null);
+            setReviewRating(0);
+            setReviewHover(0);
+            setReviewComment('');
+            fetchData(); // refresh to show submitted stars
+        } catch (error) {
+            const msg = error.response?.data?.booking_id?.[0] || error.response?.data?.rating?.[0] || 'Failed to submit review';
+            toast.error(msg);
+        } finally {
+            setReviewSubmitting(false);
+        }
+    };
+
     const upcomingBookings = bookings.filter(b => ['PENDING', 'CONFIRMED', 'IN_PROGRESS'].includes(b.status));
     const historyBookings = bookings.filter(b => b.status === 'COMPLETED');
     const cancelledBookings = bookings.filter(b => b.status === 'CANCELLED');
@@ -75,8 +112,8 @@ const ProfilePage = () => {
 
                 {/* --- HEADER SECTION --- */}
                 <div className="flex flex-col md:flex-row justify-between items-center md:items-end gap-6 border-b border-[#1A1A1A] pb-8">
-                    <div className="flex items-center gap-6">
-                        <div className="relative">
+                    <div className="flex items-center gap-6 min-w-0 flex-1">
+                        <div className="relative shrink-0">
                             <div className="w-24 h-24 rounded-full bg-[#1A1A1A] border-2 border-[#C19D6C] flex items-center justify-center text-4xl font-bold text-[#C19D6C]">
                                 {profile?.username?.[0] || "U"}
                             </div>
@@ -84,9 +121,9 @@ const ProfilePage = () => {
                                 <Crown size={16} fill="currentColor" />
                             </div>
                         </div>
-                        <div>
-                            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-1">{profile?.username}</h1>
-                            <p className="text-gray-400 text-sm tracking-wide">{profile?.email}</p>
+                        <div className="flex-1 min-w-0">
+                            <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-1 truncate">{profile?.username}</h1>
+                            <p className="text-gray-400 text-sm tracking-wide truncate">{profile?.email}</p>
                             <div className="flex gap-2 mt-3">
                                 <span className="bg-[#1A1A1A] text-[#C19D6C] text-[10px] font-bold uppercase px-3 py-1 rounded-full border border-[#C19D6C]/20">
                                     {profile?.role}
@@ -120,8 +157,8 @@ const ProfilePage = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <StatsCard title="Loyalty Points" value={profile?.points || 0} icon={Star} color="bg-yellow-500" />
                     <StatsCard title="Total Bookings" value={historyBookings.length} icon={Calendar} subtext="Lifetime visits" />
-                    <StatsCard title="Face Shape" value={profile?.face_shape || 'N/A'} icon={User} subtext="Your style guide" />
-                    <StatsCard title="Member Since" value={new Date(profile?.date_joined).getFullYear()} icon={Clock} />
+                    <StatsCard title="Face Shape" value={profile?.face_shape ? String(profile.face_shape) : 'N/A'} icon={User} subtext="Your style guide" />
+                    <StatsCard title="Member Since" value={profile?.date_joined ? String(new Date(profile.date_joined).getFullYear()) : 'N/A'} icon={Clock} />
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -217,7 +254,7 @@ const ProfilePage = () => {
                                                         </span>
                                                     </h4>
                                                     <p className="text-gray-500 text-sm mt-1 flex items-center gap-4">
-                                                        <span className="flex items-center gap-1.5"><Clock size={14} className="text-[#C19D6C]" /> {booking.booking_time}</span>
+                                                        <span className="flex items-center gap-1.5"><Clock size={14} className="text-[#C19D6C]" /> {format12HourTime(booking.booking_time)}</span>
                                                         <span className="flex items-center gap-1.5"><User size={14} className="text-[#C19D6C]" /> {booking.employee_details?.user_details?.username || "Stylist"}</span>
                                                     </p>
                                                 </div>
@@ -249,6 +286,37 @@ const ProfilePage = () => {
                                             </div>
                                             <span className="text-[#C19D6C] font-bold text-lg">₹{booking.total_price}</span>
                                         </div>
+
+                                        {/* Review: Star display for reviewed, Rate button for unreviewed COMPLETED */}
+                                        {booking.status === 'COMPLETED' && (
+                                            <div className="mt-4 pt-4 border-t border-[#2A2A2A]">
+                                                {booking.review ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <div className="flex items-center gap-0.5">
+                                                            {[1, 2, 3, 4, 5].map((s) => (
+                                                                <Star
+                                                                    key={s}
+                                                                    size={16}
+                                                                    className={s <= Math.round(booking.review.rating) ? 'text-amber-400' : 'text-gray-600'}
+                                                                    fill={s <= Math.round(booking.review.rating) ? 'currentColor' : 'none'}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                        <span className="text-xs text-gray-400 font-medium">{booking.review.rating}/5</span>
+                                                        {booking.review.comment && (
+                                                            <span className="text-xs text-gray-500 italic truncate max-w-[200px]">"{booking.review.comment}"</span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); setReviewModal(booking); setReviewRating(0); setReviewHover(0); setReviewComment(''); }}
+                                                        className="px-4 py-2 bg-[#C19D6C]/10 text-[#C19D6C] border border-[#C19D6C]/30 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-[#C19D6C] hover:text-black transition flex items-center gap-2"
+                                                    >
+                                                        <Star size={14} /> Rate Service
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 ))
                             )}
@@ -265,6 +333,86 @@ const ProfilePage = () => {
                     onClose={() => setShowEditModal(false)}
                     onSave={handleUpdateProfile}
                 />
+            )}
+
+            {/* REVIEW MODAL */}
+            {reviewModal && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+                    <div className="bg-[#1A1A1A] rounded-3xl w-full max-w-md border border-[#333] shadow-2xl animate-fade-in-up">
+
+                        {/* Modal Header */}
+                        <div className="p-6 border-b border-[#333] flex justify-between items-center">
+                            <div>
+                                <p className="text-[10px] text-[#C19D6C] font-bold uppercase tracking-widest">Rate Service</p>
+                                <h3 className="text-white text-xl font-bold mt-1">Token #{reviewModal.token_number}</h3>
+                            </div>
+                            <button onClick={() => setReviewModal(null)} className="text-gray-500 hover:text-white p-2 rounded-full hover:bg-white/10 transition">
+                                <XCircle size={20} />
+                            </button>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-6 space-y-6">
+                            {/* Interactive Stars */}
+                            <div className="text-center">
+                                <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4">How was your experience?</p>
+                                <div className="flex justify-center gap-2">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button
+                                            key={star}
+                                            type="button"
+                                            onMouseEnter={() => setReviewHover(star)}
+                                            onMouseLeave={() => setReviewHover(0)}
+                                            onClick={() => setReviewRating(star)}
+                                            className="transition-transform hover:scale-125 focus:outline-none"
+                                        >
+                                            <svg
+                                                width="36" height="36" viewBox="0 0 24 24"
+                                                fill={(reviewHover || reviewRating) >= star ? '#F59E0B' : 'none'}
+                                                stroke={(reviewHover || reviewRating) >= star ? '#F59E0B' : '#4B5563'}
+                                                strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                                                className="transition-colors duration-150"
+                                            >
+                                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                            </svg>
+                                        </button>
+                                    ))}
+                                </div>
+                                {reviewRating > 0 && (
+                                    <p className="text-amber-400 font-bold text-sm mt-2">
+                                        {reviewRating === 1 ? 'Poor' : reviewRating === 2 ? 'Fair' : reviewRating === 3 ? 'Good' : reviewRating === 4 ? 'Great' : 'Excellent!'}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Comment */}
+                            <div>
+                                <label className="text-gray-400 text-xs font-bold uppercase tracking-widest block mb-2">Comment (Optional)</label>
+                                <textarea
+                                    value={reviewComment}
+                                    onChange={(e) => setReviewComment(e.target.value)}
+                                    placeholder="Tell us about your experience..."
+                                    rows={3}
+                                    className="w-full bg-[#0B0B0B] border border-[#333] rounded-xl p-3 text-white text-sm placeholder-gray-600 outline-none focus:border-[#C19D6C] resize-none transition"
+                                />
+                            </div>
+
+                            {/* Submit */}
+                            <button
+                                onClick={handleSubmitReview}
+                                disabled={reviewRating === 0 || reviewSubmitting}
+                                className="w-full py-3.5 bg-[#C19D6C] text-black font-bold rounded-xl text-sm uppercase tracking-wider hover:bg-white transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {reviewSubmitting ? (
+                                    <Loader2 size={16} className="animate-spin" />
+                                ) : (
+                                    <Star size={16} fill="currentColor" />
+                                )}
+                                {reviewSubmitting ? 'Submitting...' : 'Submit Review'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

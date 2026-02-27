@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Loader2, ArrowRight, Mail, Lock } from 'lucide-react';
+import { Loader2, ArrowRight, ArrowLeft, Mail, Lock } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import api, { googleLogin } from '../services/api';
 
@@ -85,7 +85,12 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-4 md:p-0">
+    <div className="min-h-screen flex items-center justify-center bg-white p-4 md:p-0 relative">
+
+      {/* Floating Back to Home */}
+      <Link to="/" className="absolute top-6 left-6 md:top-8 md:left-8 z-50 flex items-center gap-2 px-4 py-2 bg-white/80 hover:bg-white text-gray-600 hover:text-black rounded-full shadow-sm backdrop-blur-md transition-all border border-gray-100 text-sm font-semibold">
+        <ArrowLeft size={16} /> Home
+      </Link>
 
       <div className="w-full max-w-5xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[500px] md:min-h-[600px] animate-fade-in border border-gray-100">
 
