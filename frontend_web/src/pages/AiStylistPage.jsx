@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Upload, Sparkles, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import { analyzeFaceShape } from '../services/api';
 
 const AiStylistPage = () => {
+    const navigate = useNavigate();
     const [selectedImage, setSelectedImage] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(null);
     const [analyzing, setAnalyzing] = useState(false);
@@ -184,26 +186,65 @@ const AiStylistPage = () => {
                                         <div className="absolute top-0 right-0 w-64 h-64 bg-[#C19D6C] opacity-5 rounded-full blur-3xl -mr-10 -mt-20"></div>
                                     </div>
 
-                                    {/* Recommendations Card */}
-                                    <div className="bg-[#111] border border-white/10 rounded-3xl p-8">
+                                    {/* Recommended Styles — Premium Cards */}
+                                    <div>
                                         <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+                                            <Sparkles size={20} className="text-[#C19D6C]" />
                                             Recommended Styles
                                         </h3>
-                                        <div className="space-y-3">
-                                            {result.recommended_hairstyles.map((style, idx) => (
-                                                <motion.div
-                                                    initial={{ opacity: 0, x: 20 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    transition={{ delay: 0.4 + (idx * 0.1) }}
-                                                    key={idx}
-                                                    className="p-4 rounded-xl bg-gradient-to-r from-white/5 to-transparent border border-white/5 hover:border-[#C19D6C]/30 transition-colors flex justify-between items-center group cursor-pointer"
-                                                >
-                                                    <span className="font-medium text-white group-hover:text-[#C19D6C] transition-colors">{style}</span>
-                                                    <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-[#C19D6C]/20 transition-colors">
-                                                        <Sparkles size={14} className="text-gray-400 group-hover:text-[#C19D6C]" />
-                                                    </span>
-                                                </motion.div>
-                                            ))}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {result.recommended_hairstyles.map((style, idx) => {
+                                                const name = typeof style === 'string' ? style : style.name;
+                                                const imageUrl = typeof style === 'object' ? style.image_url : null;
+                                                return (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ delay: 0.4 + (idx * 0.12) }}
+                                                        key={idx}
+                                                        className="bg-[#111] border border-white/10 rounded-2xl overflow-hidden group hover:border-[#C19D6C]/40 transition-all duration-300 hover:shadow-[0_0_30px_rgba(193,157,108,0.1)] flex flex-col"
+                                                    >
+                                                        {/* Style Image */}
+                                                        <div className="aspect-[4/3] w-full bg-[#1a1a1a] relative overflow-hidden">
+                                                            {imageUrl ? (
+                                                                <img
+                                                                    src={imageUrl}
+                                                                    alt={name}
+                                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                                    onError={(e) => {
+                                                                        e.target.style.display = 'none';
+                                                                        e.target.nextSibling.style.display = 'flex';
+                                                                    }}
+                                                                />
+                                                            ) : null}
+                                                            {/* Fallback placeholder if no image or image fails */}
+                                                            <div
+                                                                className={`absolute inset-0 bg-gradient-to-br from-[#C19D6C]/10 to-[#1a1a1a] items-center justify-center ${imageUrl ? 'hidden' : 'flex'}`}
+                                                            >
+                                                                <Sparkles size={40} className="text-[#C19D6C]/30" />
+                                                            </div>
+                                                            {/* Subtle gradient overlay on hover */}
+                                                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                                        </div>
+
+                                                        {/* Card Body */}
+                                                        <div className="p-4 md:p-5 flex flex-col flex-1">
+                                                            <h4 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#C19D6C] to-[#e0c9a0] mb-3">
+                                                                {name}
+                                                            </h4>
+                                                            <div className="mt-auto">
+                                                                <button
+                                                                    onClick={() => navigate('/book')}
+                                                                    className="w-full py-2.5 px-4 bg-[#C19D6C]/10 border border-[#C19D6C]/30 rounded-xl text-[#C19D6C] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#C19D6C] hover:text-black transition-all duration-300 group/btn"
+                                                                >
+                                                                    Book This Style
+                                                                    <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </motion.div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
 
