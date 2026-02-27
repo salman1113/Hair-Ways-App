@@ -1,126 +1,117 @@
 import cv2
 import mediapipe as mp
 import numpy as np
-import io
 
-# Recommendation mappings
+
+def _style_entry(name: str) -> dict:
+    """Build a recommendation object with a deterministic image URL from the style name."""
+    slug = name.lower().replace(" ", "_").replace("/", "_").replace("-", "_")
+    return {"name": name, "image_url": f"/static/images/{slug}.jpg"}
+
+
+# Recommendation mappings — each entry is {"name": ..., "image_url": ...}
 SHAPE_RECOMMENDATIONS = {
     "Oval": [
-        "Classic Pompadour",
-        "Buzz Cut",
-        "Textured Crop",
-        "Mid Fade with Top Volume"
+        _style_entry("Classic Pompadour"),
+        _style_entry("Buzz Cut"),
+        _style_entry("Textured Crop"),
+        _style_entry("Mid Fade with Top Volume"),
     ],
     "Square": [
-        "Undercut",
-        "Slicked Back",
-        "Faux Hawk",
-        "Short Back and Sides"
+        _style_entry("Undercut"),
+        _style_entry("Slicked Back"),
+        _style_entry("Faux Hawk"),
+        _style_entry("Short Back and Sides"),
     ],
     "Round": [
-        "High Skin Fade with Pompadour",
-        "Quiff",
-        "Side Part",
-        "Spiky Top"
+        _style_entry("High Skin Fade with Pompadour"),
+        _style_entry("Quiff"),
+        _style_entry("Side Part"),
+        _style_entry("Spiky Top"),
     ],
     "Heart": [
-        "Fringe / Bangs",
-        "Messy Top",
-        "Medium Length Swept Back",
-        "Side Parted Medium Hair"
+        _style_entry("Fringe Bangs"),
+        _style_entry("Messy Top"),
+        _style_entry("Medium Length Swept Back"),
+        _style_entry("Side Parted Medium Hair"),
     ],
     "Oblong": [
-        "Crew Cut",
-        "Side Part",
-        "Fringe",
-        "Short Afro"
-    ]
+        _style_entry("Crew Cut"),
+        _style_entry("Side Part"),
+        _style_entry("Fringe"),
+        _style_entry("Short Afro"),
+    ],
 }
 
-def analyze_face_shape(image_bytes: bytes):
+
+def analyze_face_shape(image_bytes: bytes) -> dict:
     """
     Takes an image byte array, uses MediaPipe to detect facial landmarks,
-    calculates facial proportions, and returns the classified face shape and recommendations.
+    calculates facial proportions, and returns the classified face shape
+    along with structured hairstyle recommendations (name + preview image URL).
     """
     # Decoding the image for OpenCV
     nparr = np.frombuffer(image_bytes, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-    
+
     if img is None:
         raise ValueError("Invalid image file provided.")
 
     # Convert to RGB for MediaPipe
     img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     h, w, _ = img.shape
-    
+
     # Initialize inside the function to avoid global GL Context / Forking crashes
     mp_face_mesh = mp.solutions.face_mesh
     with mp_face_mesh.FaceMesh(
-        static_image_mode=True, 
-        max_num_faces=1, 
+        static_image_mode=True,
+        max_num_faces=1,
         refine_landmarks=True,
-        min_detection_confidence=0.5
+        min_detection_confidence=0.5,
     ) as face_mesh:
         results = face_mesh.process(img_rgb)
-    
+
     if not results.multi_face_landmarks:
         raise ValueError("No face detected in the image.")
-        
+
     landmarks = results.multi_face_landmarks[0].landmark
-    
+
     # Helper to get pixel coordinates
-    def get_pt(index):
+    def get_pt(index: int) -> np.ndarray:
         pt = landmarks[index]
         return np.array([pt.x * w, pt.y * h])
-        
-    # Get relevant landmark points
-    # Index 10: Top of forehead (hairline approx)
-    # Index 152: Bottom of chin
-    # Index 234: Left side of face (cheekbone area)
-    # Index 454: Right side of face (cheekbone area)
-    # Index 132: Left jaw
-    # Index 361: Right jaw
-    
-    top_head = get_pt(10)
-    bottom_chin = get_pt(152)
-    left_cheek = get_pt(234)
-    right_cheek = get_pt(454)
-    left_jaw = get_pt(132)
-    right_jaw = get_pt(361)
-    
-    # Calculate Distances
+
+    # Relevant landmark points
+    top_head = get_pt(10)       # Top of forehead (hairline approx)
+    bottom_chin = get_pt(152)   # Bottom of chin
+    left_cheek = get_pt(234)    # Left cheekbone
+    right_cheek = get_pt(454)   # Right cheekbone
+    left_jaw = get_pt(132)      # Left jaw
+    right_jaw = get_pt(361)     # Right jaw
+
+    # Calculate distances
     face_length = np.linalg.norm(top_head - bottom_chin)
     face_width = np.linalg.norm(left_cheek - right_cheek)
     jaw_width = np.linalg.norm(left_jaw - right_jaw)
-    
-    # Simple Face Classification Math
+
+    # Ratio-based classification
     ratio_width_length = face_width / face_length
-    
+    jaw_ratio = jaw_width / face_width
+
     # Simple heuristic classification
-    shape = "Oval"
-    
     if ratio_width_length > 0.85:
-        # Face is quite wide compared to length
-        if jaw_width / face_width > 0.85:
-            shape = "Square"
-        else:
-            shape = "Round"
+        shape = "Square" if jaw_ratio > 0.85 else "Round"
+    elif ratio_width_length < 0.7:
+        shape = "Oblong"
     else:
-        # Face is longer than it is wide
-        if ratio_width_length < 0.7:
-            shape = "Oblong"
-        else:
-            if jaw_width / face_width < 0.75:
-                shape = "Heart"
-            else:
-                shape = "Oval"
-                
-    # Format Response
+        shape = "Heart" if jaw_ratio < 0.75 else "Oval"
+
+    # Format response
     return {
         "face_shape": shape,
         "metrics": {
             "face_width_to_length_ratio": round(ratio_width_length, 2),
-            "jaw_to_face_width_ratio": round(jaw_width / face_width, 2)
+            "jaw_to_face_width_ratio": round(jaw_ratio, 2),
         },
-        "recommended_hairstyles": SHAPE_RECOMMENDATIONS.get(shape, [])
+        "recommended_hairstyles": SHAPE_RECOMMENDATIONS.get(shape, []),
     }

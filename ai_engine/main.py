@@ -1,5 +1,7 @@
+import os
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from services import analyze_face_shape
 from agents.customer_agent import ask_customer_agent
@@ -20,10 +22,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Serve hairstyle preview images at /static/images/<slug>.jpg
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+os.makedirs(os.path.join(STATIC_DIR, "images"), exist_ok=True)
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
 @app.get("/api/ai/health")
 def health_check():
     """Simple health check endpoint"""
     return {"status": "healthy", "service": "ai_engine"}
+
 
 @app.post("/api/ai/analyze-face")
 async def analyze_face(image: UploadFile = File(...)):
@@ -31,12 +40,12 @@ async def analyze_face(image: UploadFile = File(...)):
     try:
         # Read the image file bytes
         contents = await image.read()
-        
+
         # Analyze the face using the OpenCV/MediaPipe service
         result = analyze_face_shape(contents)
-        
+
         return {
-            "success": True, 
+            "success": True,
             "data": result
         }
     except ValueError as e:
@@ -45,8 +54,10 @@ async def analyze_face(image: UploadFile = File(...)):
         print(f"Server Error during AI Analysis: {e}")
         raise HTTPException(status_code=500, detail="An error occurred within the AI visual processor.")
 
+
 class ChatRequest(BaseModel):
     query: str
+
 
 @app.post("/api/ai/chat/customer")
 async def chat_customer(request: ChatRequest):
@@ -58,6 +69,7 @@ async def chat_customer(request: ChatRequest):
         print(f"Customer Chat Error: {e}")
         raise HTTPException(status_code=500, detail="Customer AI is temporarily down.")
 
+
 @app.post("/api/ai/chat/admin")
 async def chat_admin(request: ChatRequest):
     """Admin Data Insights Agent for NLP Database Querying"""
@@ -67,4 +79,3 @@ async def chat_admin(request: ChatRequest):
     except Exception as e:
         print(f"Admin Chat Error: {e}")
         raise HTTPException(status_code=500, detail="Admin AI failed to query database.")
-
