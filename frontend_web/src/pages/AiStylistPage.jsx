@@ -195,7 +195,26 @@ const AiStylistPage = () => {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {result.recommended_hairstyles.map((style, idx) => {
                                                 const name = typeof style === 'string' ? style : style.name;
-                                                const imageUrl = typeof style === 'object' ? style.image_url : null;
+                                                let imageUrl = typeof style === 'object' ? style.image_url : null;
+
+                                                if (imageUrl && imageUrl.startsWith('/')) {
+                                                    try {
+                                                        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+                                                        const urlObj = new URL(apiUrl);
+
+                                                        // The AI Engine runs on port 8001 locally.
+                                                        // In production, you'd typically serve this through a unified gateway or bucket.
+                                                        if (urlObj.port === '8000') {
+                                                            imageUrl = `${urlObj.protocol}//${urlObj.hostname}:8001${imageUrl}`;
+                                                        } else {
+                                                            imageUrl = `${urlObj.protocol}//${urlObj.hostname}:8001${imageUrl}`;
+                                                            // Fallback to 8001 if gateway isn't proxying /static/ to AI Engine
+                                                        }
+                                                    } catch (e) {
+                                                        imageUrl = `http://localhost:8001${imageUrl}`;
+                                                    }
+                                                }
+
                                                 return (
                                                     <motion.div
                                                         initial={{ opacity: 0, y: 20 }}
@@ -232,15 +251,6 @@ const AiStylistPage = () => {
                                                             <h4 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#C19D6C] to-[#e0c9a0] mb-3">
                                                                 {name}
                                                             </h4>
-                                                            <div className="mt-auto">
-                                                                <button
-                                                                    onClick={() => navigate('/book')}
-                                                                    className="w-full py-2.5 px-4 bg-[#C19D6C]/10 border border-[#C19D6C]/30 rounded-xl text-[#C19D6C] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#C19D6C] hover:text-black transition-all duration-300 group/btn"
-                                                                >
-                                                                    Book This Style
-                                                                    <ArrowRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
-                                                                </button>
-                                                            </div>
                                                         </div>
                                                     </motion.div>
                                                 );
