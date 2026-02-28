@@ -5,9 +5,14 @@ __pycache__/
 .git/
 .gitignore
 .env
+.env.*
 db.sqlite3
 .pytest_cache/
 test_results.txt
 *.egg-info/
 dist/
 build/
+media/
+staticfiles/
+celerybeat-schedule*
+*.log
