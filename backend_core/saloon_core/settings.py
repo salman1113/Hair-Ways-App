@@ -30,7 +30,9 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG') == 'True'
 
-ALLOWED_HOSTS = ['*']
+# ── Hosts & Origins ──────────────────────────────────────────────────────
+# In production set ALLOWED_HOSTS="hairways.com,www.hairways.com"
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
 
 
 # Application definition
@@ -52,6 +54,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
     'django_celery_beat',
+    'storages',
 
     # swagger
     'drf_yasg',
@@ -63,7 +66,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware', #For connecting REACT
+    'corsheaders.middleware.CorsMiddleware',  # For connecting REACT
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -110,7 +113,7 @@ CHANNEL_LAYERS = {
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-#Database Configuration
+# Database Configuration
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -157,34 +160,65 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.0/howto/static-files/
+# ── Static & Media Files ─────────────────────────────────────────────────
+# Toggle S3 storage via USE_S3 env var (set to "True" in production)
+USE_S3 = os.getenv('USE_S3') == 'True'
 
-STATIC_URL = 'static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+if USE_S3:
+    # AWS Credentials
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'ap-south-1')
+    AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+    AWS_DEFAULT_ACL = None
+    AWS_S3_OBJECT_PARAMETERS = {'CacheControl': 'max-age=86400'}
+    AWS_QUERYSTRING_AUTH = False  # Public-readable URLs for static/media
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+    # Static files on S3
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+            "OPTIONS": {
+                "location": "media",
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "storages.backends.s3boto3.S3StaticStorage",
+            "OPTIONS": {
+                "location": "static",
+            },
+        },
+    }
+    STATIC_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/static/'
+    MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+else:
+    # Local filesystem storage (for development)
+    STATIC_URL = 'static/'
+    STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
 
 LOGIN_URL = '/api-auth/login/'
 LOGIN_REDIRECT_URL = '/swagger/'
 LOGOUT_URL = '/api-auth/logout/'
 LOGOUT_REDIRECT_URL = '/swagger/'
 
-#Custom User Model Setting
+# Custom User Model Setting
 AUTH_USER_MODEL = 'accounts.User'
 
 
-# settings.py 
+# settings.py
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',  # Enable Session Auth for Browsable API / Swagger
-        'rest_framework.authentication.BasicAuthentication',  # Enable Basic Auth for Swagger Authorize button
+        'rest_framework.authentication.SessionAuthentication',   # Enable Session Auth for Browsable API / Swagger
+        'rest_framework.authentication.BasicAuthentication',     # Enable Basic Auth for Swagger Authorize button
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated', # by default everyside must want login
+        'rest_framework.permissions.IsAuthenticated',  # by default everyside must want login
     ),
 }
 
@@ -202,12 +236,20 @@ SWAGGER_SETTINGS = {
 
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),  # 1 day login
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),   # 1 day login
     'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
 }
 
 
-CORS_ALLOW_ALL_ORIGINS = True
+# ── CORS ──────────────────────────────────────────────────────────────────
+# In production set CORS_ALLOWED_ORIGINS="https://hairways.com,https://www.hairways.com"
+_cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '')
+if _cors_origins:
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins.split(',') if o.strip()]
+else:
+    # Fallback – allow all (development only)
+    CORS_ALLOW_ALL_ORIGINS = True
 
 # Google Auth Settings
 GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
@@ -246,3 +288,51 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(minute='*/5'),  # Run every 5 minutes
     },
 }
+
+
+# ── Production Logging (STDOUT → CloudWatch) ─────────────────────────────
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name} {module}.{funcName}:{lineno} — {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}
+
+
+# ── Production Security Hardening ─────────────────────────────────────────
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_BROWSER_XSS_FILTER = True
+    X_FRAME_OPTIONS = 'DENY'

@@ -16,3 +16,10 @@ celery
 django-celery-beat
 redis
 reportlab
+
+# ── Production (AWS ECS) ──────────────────────────────────────────────────
+boto3
+django-storages
+gunicorn
+uvicorn[standard]
+whitenoise

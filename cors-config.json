@@ -1,0 +1,11 @@
+{
+  "CORSRules": [
+    {
+      "AllowedHeaders": ["*"],
+      "AllowedMethods": ["GET", "PUT", "POST"],
+      "AllowedOrigins": ["https://hairways.com", "https://www.hairways.com", "http://localhost:5173"],
+      "ExposeHeaders": ["ETag"],
+      "MaxAgeSeconds": 86400
+    }
+  ]
+}

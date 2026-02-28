@@ -1,8 +1,15 @@
 from django.contrib import admin, auth
 from django.contrib.auth import views as auth_views
+from django.http import JsonResponse
 from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
+
+
+# ── Health Check (for AWS ALB) ────────────────────────────────────────────
+def health_check(request):
+    return JsonResponse({"status": "healthy", "service": "backend_core"})
+
 
 # Swagger Imports
 from rest_framework import permissions
@@ -24,6 +31,9 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
+    # Health check endpoint (no auth — used by AWS ALB)
+    path('health/', health_check, name='health-check'),
+
     path('admin/', admin.site.urls),
 
     # Services API Link
