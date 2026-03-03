@@ -10,7 +10,7 @@ def _style_entry(name: str) -> dict:
     """Build a recommendation object with a deterministic image URL from the style name."""
     slug = name.lower().replace(" ", "_").replace("/", "_").replace("-", "_")
     # ശ്രദ്ധിക്കുക: നിന്റെ ലോഡ് ബാലൻസർ വഴി ഈ ഇമേജ് കിട്ടണമെങ്കിൽ /static/ പാത്ത് ALB-യിൽ സെറ്റ് ചെയ്യണം
-    return {"name": name, "image_url": f"/static/images/{slug}.jpg"}
+    return {"name": name, "image_url": f"/ai-static/images/{slug}.jpg"}
 
 # Recommendation mappings
 SHAPE_RECOMMENDATIONS = {
