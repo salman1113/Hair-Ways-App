@@ -1,0 +1,69 @@
+name: Deploy AI Engine to Amazon ECS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'ai_engine/**' # AI എഞ്ചിൻ ഫോൾഡറിൽ മാറ്റം വന്നാൽ മാത്രം ഈ പൈപ്പ്‌ലൈൻ വർക്ക് ആകും
+
+env:
+  AWS_REGION: ap-south-1
+  ECR_REPOSITORY: hairways/ai-engine # നിന്റെ AI ECR Repo പേര് (പഴയ സ്ക്രീൻഷോട്ടിൽ നിന്ന് എടുത്തത്)
+  ECS_SERVICE: hairways-ai-service   # നിന്റെ AI ECS Service പേര്
+  ECS_CLUSTER: hairways-cluster      # നിന്റെ ECS Cluster പേര്
+  ECS_TASK_DEFINITION: hairways-ai-task # ⚠️ നിന്റെ AI Task Definition പേര് ഇവിടെ കൊടുക്കുക
+  CONTAINER_NAME: ai-engine          # ⚠️ Task Definition-ലെ AI കണ്ടെയ്നർ പേര് കൊടുക്കുക
+
+jobs:
+  deploy:
+    name: Deploy AI Engine
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image to Amazon ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        working-directory: ./ai_engine # ഇത് വളരെ പ്രധാനമാണ്! AI ഫോൾഡറിൽ കയറി ബിൽഡ് ചെയ്യാൻ.
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      - name: Download current task definition
+        run: |
+          aws ecs describe-task-definition --task-definition ${{ env.ECS_TASK_DEFINITION }} --query taskDefinition > task-definition.json
+          jq 'del(.enableFaultInjection)' task-definition.json > temp.json && mv temp.json task-definition.json
+
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: task-definition.json
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
