@@ -23,7 +23,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
-# MediaPipe & OpenCV-ക്ക് വേണ്ട പ്രധാന ലൈബ്രറികൾ താഴെ പറയുന്നവയാണ്
+# MediaPipe & OpenCV-ക്ക് വേണ്ട പ്രധാന ലൈബ്രറികൾ താഴെ പറയുന്നവയാണ് (Software Rendering Requirements)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
