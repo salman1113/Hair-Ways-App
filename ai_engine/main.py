@@ -32,7 +32,7 @@ app.add_middleware(
 # Serve hairstyle preview images at /ai-static/images/<slug>.jpg
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 os.makedirs(os.path.join(STATIC_DIR, "images"), exist_ok=True)
-app.mount("/ai-static", StaticFiles(directory="static", html=True), name="ai-static")
+app.mount("/ai-static", StaticFiles(directory="ai_static"), name="ai-static")
 
 @app.get("/api/ai/health")
 def health_check():
