@@ -13,7 +13,7 @@ const ServiceDetails = () => {
     useEffect(() => {
         const fetchService = async () => {
             try {
-                const response = await fetch(`http://localhost:8000/api/v1/services/services/${id}/`);
+                const response = await fetch(`http://hairways-alb-2028882098.ap-south-1.elb.amazonaws.com/api/v1/services/services/${id}/`);
                 if (!response.ok) throw new Error('Failed to fetch service details');
                 const data = await response.json();
                 setService(data);

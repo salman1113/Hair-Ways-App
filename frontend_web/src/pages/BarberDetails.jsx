@@ -13,7 +13,7 @@ const BarberDetails = () => {
     useEffect(() => {
         const fetchBarber = async () => {
             try {
-                const response = await fetch(`http://localhost:8000/api/v1/accounts/employees/${id}/`);
+                const response = await fetch(`http://hairways-alb-2028882098.ap-south-1.elb.amazonaws.com/api/v1/accounts/employees/${id}/`);
                 if (!response.ok) throw new Error('Failed to fetch barber details');
                 const data = await response.json();
                 setMember(data);

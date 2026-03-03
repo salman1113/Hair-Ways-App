@@ -1,0 +1,118 @@
+{
+    "family": "hairways-celery-worker",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "512",
+    "memory": "1024",
+    "executionRoleArn": "arn:aws:iam::168614392083:role/ecsTaskExecutionRole",
+    "taskRoleArn": "arn:aws:iam::168614392083:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+        {
+            "name": "celery-worker",
+            "image": "168614392083.dkr.ecr.ap-south-1.amazonaws.com/hairways/backend:latest",
+            "essential": true,
+            "command": [
+                "celery",
+                "-A",
+                "saloon_core",
+                "worker",
+                "-l",
+                "INFO"
+            ],
+            "environment": [
+                {
+                    "name": "DEBUG",
+                    "value": "False"
+                },
+                {
+                    "name": "USE_S3",
+                    "value": "True"
+                },
+                {
+                    "name": "AWS_STORAGE_BUCKET_NAME",
+                    "value": "hairways-assets"
+                },
+                {
+                    "name": "AWS_S3_REGION_NAME",
+                    "value": "ap-south-1"
+                },
+                {
+                    "name": "DB_PORT",
+                    "value": "5432"
+                },
+                {
+                    "name": "REDIS_PORT",
+                    "value": "6379"
+                },
+                {
+                    "name": "EMAIL_HOST",
+                    "value": "smtp.gmail.com"
+                },
+                {
+                    "name": "EMAIL_PORT",
+                    "value": "587"
+                },
+                {
+                    "name": "EMAIL_USE_TLS",
+                    "value": "True"
+                },
+                {
+                    "name": "EMAIL_USE_SSL",
+                    "value": "False"
+                }
+            ],
+            "secrets": [
+                {
+                    "name": "SECRET_KEY",
+                    "valueFrom": "arn:aws:ssm:ap-south-1:168614392083:parameter/hairways/SECRET_KEY"
+                },
+                {
+                    "name": "DB_NAME",
+                    "valueFrom": "arn:aws:ssm:ap-south-1:168614392083:parameter/hairways/DB_NAME"
+                },
+                {
+                    "name": "DB_USER",
+                    "valueFrom": "arn:aws:ssm:ap-south-1:168614392083:parameter/hairways/DB_USER"
+                },
+                {
+                    "name": "DB_PASSWORD",
+                    "valueFrom": "arn:aws:ssm:ap-south-1:168614392083:parameter/hairways/DB_PASSWORD"
+                },
+                {
+                    "name": "DB_HOST",
+                    "valueFrom": "arn:aws:ssm:ap-south-1:168614392083:parameter/hairways/DB_HOST"
+                },
+                {
+                    "name": "REDIS_HOST",
+                    "valueFrom": "arn:aws:ssm:ap-south-1:168614392083:parameter/hairways/REDIS_HOST"
+                },
+                {
+                    "name": "AWS_ACCESS_KEY_ID",
+                    "valueFrom": "arn:aws:ssm:ap-south-1:168614392083:parameter/hairways/AWS_ACCESS_KEY_ID"
+                },
+                {
+                    "name": "AWS_SECRET_ACCESS_KEY",
+                    "valueFrom": "arn:aws:ssm:ap-south-1:168614392083:parameter/hairways/AWS_SECRET_ACCESS_KEY"
+                },
+                {
+                    "name": "EMAIL_HOST_USER",
+                    "valueFrom": "arn:aws:ssm:ap-south-1:168614392083:parameter/hairways/EMAIL_HOST_USER"
+                },
+                {
+                    "name": "EMAIL_HOST_PASSWORD",
+                    "valueFrom": "arn:aws:ssm:ap-south-1:168614392083:parameter/hairways/EMAIL_HOST_PASSWORD"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/hairways-celery",
+                    "awslogs-region": "ap-south-1",
+                    "awslogs-stream-prefix": "celery-worker"
+                }
+            }
+        }
+    ]
+}

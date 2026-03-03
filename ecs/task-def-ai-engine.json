@@ -1,0 +1,70 @@
+{
+    "family": "hairways-ai-engine",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "1024",
+    "memory": "2048",
+    "executionRoleArn": "arn:aws:iam::168614392083:role/ecsTaskExecutionRole",
+    "taskRoleArn": "arn:aws:iam::168614392083:role/ecsTaskExecutionRole",
+    "containerDefinitions": [
+        {
+            "name": "ai-engine",
+            "image": "168614392083.dkr.ecr.ap-south-1.amazonaws.com/hairways/ai-engine:latest",
+            "essential": true,
+            "portMappings": [
+                {
+                    "containerPort": 8001,
+                    "protocol": "tcp"
+                }
+            ],
+            "environment": [
+                {
+                    "name": "DB_PORT",
+                    "value": "5432"
+                }
+            ],
+            "secrets": [
+                {
+                    "name": "DB_NAME",
+                    "valueFrom": "arn:aws:ssm:ap-south-1:168614392083:parameter/hairways/DB_NAME"
+                },
+                {
+                    "name": "DB_USER",
+                    "valueFrom": "arn:aws:ssm:ap-south-1:168614392083:parameter/hairways/DB_USER"
+                },
+                {
+                    "name": "DB_PASSWORD",
+                    "valueFrom": "arn:aws:ssm:ap-south-1:168614392083:parameter/hairways/DB_PASSWORD"
+                },
+                {
+                    "name": "DB_HOST",
+                    "valueFrom": "arn:aws:ssm:ap-south-1:168614392083:parameter/hairways/DB_HOST"
+                },
+                {
+                    "name": "GROQ_API_KEY",
+                    "valueFrom": "arn:aws:ssm:ap-south-1:168614392083:parameter/hairways/GROQ_API_KEY"
+                }
+            ],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/hairways-ai-engine",
+                    "awslogs-region": "ap-south-1",
+                    "awslogs-stream-prefix": "ai-engine"
+                }
+            },
+            "healthCheck": {
+                "command": [
+                    "CMD-SHELL",
+                    "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/api/ai/health')\" || exit 1"
+                ],
+                "interval": 30,
+                "timeout": 10,
+                "retries": 3,
+                "startPeriod": 30
+            }
+        }
+    ]
+}

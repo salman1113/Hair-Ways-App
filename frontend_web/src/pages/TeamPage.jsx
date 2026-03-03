@@ -31,9 +31,9 @@ const TeamPage = () => {
     useEffect(() => {
         const fetchTeam = async () => {
             try {
-                // Assuming your backend URL is running on localhost:8000
+                // Assuming your backend URL is running on ALB domain
                 // Use a relative path if proxy is configured, or full URL
-                const response = await fetch('http://localhost:8000/api/v1/accounts/employees/');
+                const response = await fetch('http://hairways-alb-2028882098.ap-south-1.elb.amazonaws.com/api/v1/accounts/employees/');
                 if (!response.ok) throw new Error('Failed to fetch team');
                 const data = await response.json();
                 setTeamMembers(data);

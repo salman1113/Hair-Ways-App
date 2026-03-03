@@ -199,7 +199,7 @@ const AiStylistPage = () => {
 
                                                 if (imageUrl && imageUrl.startsWith('/')) {
                                                     try {
-                                                        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+                                                        const apiUrl = import.meta.env.VITE_API_URL || 'http://hairways-alb-2028882098.ap-south-1.elb.amazonaws.com/api/v1';
                                                         const urlObj = new URL(apiUrl);
 
                                                         // The AI Engine runs on port 8001 locally.

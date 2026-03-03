@@ -37,7 +37,7 @@ const ServicesPage = () => {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/v1/services/services/');
+        const response = await fetch('http://hairways-alb-2028882098.ap-south-1.elb.amazonaws.com/api/v1/services/services/');
         if (!response.ok) throw new Error('Failed to fetch services');
         const data = await response.json();
         setServices(data);
