@@ -13,10 +13,17 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Allow all origins for now until proxy is fully setup
+# Allow specific origins based on environment variable (like Django)
+_cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '')
+if _cors_origins:
+    allow_origins = [o.strip() for o in _cors_origins.split(',') if o.strip()]
+else:
+    # Fallback - allow all (development only)
+    allow_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
