@@ -86,3 +86,4 @@ async def chat_admin(request: ChatRequest):
     except Exception as e:
         print(f"Admin Chat Error: {e}")
         raise HTTPException(status_code=500, detail="Admin AI failed to query database.")
+
