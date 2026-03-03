@@ -15,3 +15,5 @@ class BookingAdmin(admin.ModelAdmin):
 
 admin.site.register(BookingItem)
 admin.site.register(BarberQueue)
+
+
