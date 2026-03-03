@@ -199,19 +199,18 @@ const AiStylistPage = () => {
 
                                                 if (imageUrl && imageUrl.startsWith('/')) {
                                                     try {
-                                                        const apiUrl = import.meta.env.VITE_API_URL || 'http://hairways-alb-2028882098.ap-south-1.elb.amazonaws.com/api/v1';
+                                                        const apiUrl = import.meta.env.VITE_API_URL || 'https://api.hairways.in/api/v1';
                                                         const urlObj = new URL(apiUrl);
 
-                                                        // The AI Engine runs on port 8001 locally.
-                                                        // In production, you'd typically serve this through a unified gateway or bucket.
-                                                        if (urlObj.port === '8000') {
+                                                        // In production, the gateway handles /static/ routes.
+                                                        // We just prepend the production domain.
+                                                        if (urlObj.hostname === 'localhost' || urlObj.hostname === '127.0.0.1') {
                                                             imageUrl = `${urlObj.protocol}//${urlObj.hostname}:8001${imageUrl}`;
                                                         } else {
-                                                            imageUrl = `${urlObj.protocol}//${urlObj.hostname}:8001${imageUrl}`;
-                                                            // Fallback to 8001 if gateway isn't proxying /static/ to AI Engine
+                                                            imageUrl = `${urlObj.protocol}//${urlObj.hostname}${imageUrl}`;
                                                         }
                                                     } catch (e) {
-                                                        imageUrl = `http://localhost:8001${imageUrl}`;
+                                                        imageUrl = `https://api.hairways.in${imageUrl}`;
                                                     }
                                                 }
 

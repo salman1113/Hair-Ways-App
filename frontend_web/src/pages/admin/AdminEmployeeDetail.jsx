@@ -104,7 +104,7 @@ const AdminEmployeeDetail = () => {
     const ownerCut = lifetimeWork * ((100 - commissionPct) / 100);
     const employeeCut = lifetimeWork * (commissionPct / 100);
 
-    const MEDIA_BASE = (import.meta.env.VITE_API_URL || 'http://hairways-alb-2028882098.ap-south-1.elb.amazonaws.com').replace('/api/v1', '');
+    const MEDIA_BASE = (import.meta.env.VITE_API_URL || 'https://api.hairways.in').replace('/api/v1', '');
 
     if (loading) {
         return (

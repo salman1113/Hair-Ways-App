@@ -31,7 +31,7 @@ const useWebSocketNotification = (role, userId, onMessageReceived) => {
 
             // Dev: redirect Vite dev server to Django backend
             if (host.includes('5173') || host.includes('localhost:') || host.includes('127.0.0.1:')) {
-                host = 'hairways-alb-2028882098.ap-south-1.elb.amazonaws.com';
+                host = 'api.hairways.in';
             }
 
             const wsUrl = `${protocol}//${host}/ws/notifications/${role}/${userId}/`;

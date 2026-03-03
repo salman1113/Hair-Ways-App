@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 1. BASE URL
-const API_URL = import.meta.env.VITE_API_URL || 'http://hairways-alb-2028882098.ap-south-1.elb.amazonaws.com/api/v1';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.hairways.in/api/v1';
 
 const api = axios.create({
   baseURL: API_URL,
@@ -321,13 +321,13 @@ export const analyzeFaceShape = async (imageFile) => {
   formData.append('image', imageFile);
 
   // Using out master proxy gateway by prefixing with /api/ai
-  // Wait, the baseURL is: const API_URL = import.meta.env.VITE_API_URL || 'http://hairways-alb-2028882098.ap-south-1.elb.amazonaws.com/api/v1';
+  // Wait, the baseURL is: const API_URL = import.meta.env.VITE_API_URL || 'https://api.hairways.in/api/v1';
   // Oh, wait! Our baseURL is API_URL which ends in `/api/v1`.
   // The gateway points to `/api/ai/` and `/api/v1/`.
-  // So if API_URL ='http://localhost/api/v1', we need to go up one level.
+  // So if API_URL ='https://api.hairways.in/api/v1', we need to go up one level.
   // Or we can just use an absolute path for this specific endpoint.
 
-const API_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/v1', '') : 'http://hairways-alb-2028882098.ap-south-1.elb.amazonaws.com/api';
+  const API_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/v1', '') : 'https://api.hairways.in/api';
 
   const response = await axios.post(`${API_BASE}/ai/analyze-face`, formData, {
     headers: {
@@ -338,7 +338,7 @@ const API_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.rep
 };
 
 export const chatCustomerAI = async (query) => {
-  const API_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/v1', '') : 'http://localhost/api';
+  const API_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/v1', '') : 'https://api.hairways.in/api';
   const response = await axios.post(`${API_BASE}/ai/chat/customer`, { query }, {
     headers: { 'Content-Type': 'application/json' },
   });
@@ -346,7 +346,7 @@ export const chatCustomerAI = async (query) => {
 };
 
 export const chatAdminAI = async (query) => {
-  const API_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/v1', '') : 'http://localhost/api';
+  const API_BASE = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/v1', '') : 'https://api.hairways.in/api';
   const response = await axios.post(`${API_BASE}/ai/chat/admin`, { query }, {
     headers: { 'Content-Type': 'application/json' },
   });

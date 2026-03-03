@@ -42,8 +42,8 @@ const HomePage = () => {
     const fetchHomeData = async () => {
       try {
         const [servicesRes, teamRes] = await Promise.all([
-          fetch('http://hairways-alb-2028882098.ap-south-1.elb.amazonaws.com/api/v1/services/services/'),
-          fetch('http://hairways-alb-2028882098.ap-south-1.elb.amazonaws.com/api/v1/accounts/employees/')
+          fetch('https://api.hairways.in/api/v1/services/services/'),
+          fetch('https://api.hairways.in/api/v1/accounts/employees/')
         ]);
         if (servicesRes.ok) {
           const sData = await servicesRes.json();

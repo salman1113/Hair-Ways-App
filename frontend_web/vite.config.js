@@ -11,11 +11,11 @@ export default defineConfig({
   server: {
     proxy: {
       '/ws/': {
-        target: 'ws://hairways-alb-2028882098.ap-south-1.elb.amazonaws.com',
+        target: 'wss://api.hairways.in',
         ws: true,
       },
       '/api/': {
-        target: 'http://hairways-alb-2028882098.ap-south-1.elb.amazonaws.com',
+        target: 'https://api.hairways.in',
       }
     }
   }
