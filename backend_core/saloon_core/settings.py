@@ -98,13 +98,14 @@ ASGI_APPLICATION = 'saloon_core.asgi.application'
 
 # Channels configuration
 REDIS_HOST = os.getenv('REDIS_HOST', 'redis')
-REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
+REDIS_PORT = os.getenv('REDIS_PORT', '6379')
 
+# മാറ്റം വരുത്തിയത് ഇവിടെയാണ് (URL format) 👇
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            'hosts': [(REDIS_HOST, REDIS_PORT)],
+            'hosts': [f"redis://{REDIS_HOST}:{REDIS_PORT}/0"], 
         },
     },
 }

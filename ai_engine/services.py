@@ -121,5 +121,4 @@ def analyze_face_shape(image_bytes: bytes) -> dict:
         }
     
     finally:
-        # മെമ്മറി റിലീസ് ചെയ്യാൻ മറക്കരുത്
         face_mesh.close()
