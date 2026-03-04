@@ -57,7 +57,7 @@ const AdminChatDrawer = () => {
             {!isOpen && (
                 <button
                     onClick={toggleDrawer}
-                    className="fixed bottom-6 right-6 z-30 bg-[#3F0D12] text-white p-4 rounded-full shadow-2xl hover:bg-[#D72638] transition-all duration-300 group flex items-center justify-center border-2 border-[#D72638]/30"
+                    className="fixed bottom-20 md:bottom-6 right-6 z-30 bg-[#3F0D12] text-white p-4 rounded-full shadow-2xl hover:bg-[#D72638] transition-all duration-300 group flex items-center justify-center border-2 border-[#D72638]/30"
                     title="Data Insights AI"
                 >
                     <Database size={24} className="group-hover:scale-110 transition-transform" />
