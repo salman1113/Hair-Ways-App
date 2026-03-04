@@ -104,6 +104,24 @@ const AdminLayout = () => {
       {/* ═══════════════════════════════════ */}
       <div className="flex-1 flex flex-col overflow-hidden w-full relative">
 
+        {/* Top Header (Mobile) */}
+        <header className="bg-white h-16 border-b border-gray-200 flex md:hidden items-center justify-between px-4 shrink-0 z-10 w-full">
+          <div className="flex items-center gap-2">
+            <Scissors size={20} className="text-[#C19D6C]" />
+            <h2 className="text-lg font-black text-[#1A1A1A] tracking-[0.2em] flex items-center gap-1 whitespace-nowrap">
+              H.WAYS
+              <span className="text-[#C19D6C] font-medium text-[10px] uppercase tracking-widest ml-1">Admin</span>
+            </h2>
+          </div>
+          <button
+            onClick={() => { logout(); navigate('/login'); }}
+            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200"
+            title="Logout"
+          >
+            <LogOut size={20} strokeWidth={1.8} />
+          </button>
+        </header>
+
         {/* Top Header (Desktop) */}
         <header className="bg-white h-16 border-b border-gray-200 hidden md:flex items-center justify-between px-8 shrink-0 z-10">
           {/* Search Bar */}
