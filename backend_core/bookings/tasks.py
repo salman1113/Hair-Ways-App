@@ -252,32 +252,32 @@ def send_upcoming_booking_reminders():
             booking.is_reminder_sent = True
             booking.save()
             reminded_count += 1
-        
-        customer_email = None
-        # Handle guest walkins or online customers
-        if booking.customer and booking.customer.email:
-            customer_email = booking.customer.email
             
-        if customer_email:
-            stylist_name = booking.employee.user.username if booking.employee else "our expert team"
-            # Get first service name for email context if exists
-            service_name = "your service"
-            first_item = booking.items.first()
-            if first_item and first_item.service:
-                service_name = first_item.service.name
+            customer_email = None
+            # Handle guest walkins or online customers
+            if booking.customer and booking.customer.email:
+                customer_email = booking.customer.email
+                
+            if customer_email:
+                stylist_name = booking.employee.user.username if booking.employee else "our expert team"
+                # Get first service name for email context if exists
+                service_name = "your service"
+                first_item = booking.items.first()
+                if first_item and first_item.service:
+                    service_name = first_item.service.name
 
-            send_mail(
-                subject=f"Reminder: Upcoming Appointment at Hair Ways (Token #{booking.token_number})",
-                message=(
-                    f"Hello {booking.guest_name or 'Valued Customer'},\n\n"
-                    f"This is a friendly reminder that your appointment for {service_name} with {stylist_name} "
-                    f"is starting soon at {booking.booking_time.strftime('%I:%M %p')}.\n\n"
-                    f"We look forward to seeing you shortly!\n\n"
-                    f"Thank you, The Hair Ways Team"
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[customer_email],
-                fail_silently=True
-            )
+                send_mail(
+                    subject=f"Reminder: Upcoming Appointment at Hair Ways (Token #{booking.token_number})",
+                    message=(
+                        f"Hello {booking.guest_name or 'Valued Customer'},\n\n"
+                        f"This is a friendly reminder that your appointment for {service_name} with {stylist_name} "
+                        f"is starting soon at {booking.booking_time.strftime('%I:%M %p')}.\n\n"
+                        f"We look forward to seeing you shortly!\n\n"
+                        f"Thank you, The Hair Ways Team"
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[customer_email],
+                    fail_silently=True
+                )
             
     return f"Sent {reminded_count} smart upcoming booking reminders."
