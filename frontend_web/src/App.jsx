@@ -9,6 +9,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import AdminLayout from './components/AdminLayout'; // 🔥 New Layout
 import CustomerChatWidget from './components/CustomerChatWidget';
+import MaintenanceBanner from './components/MaintenanceBanner';
 
 // Pages - Public
 import HomePage from './pages/HomePage';
@@ -101,6 +102,7 @@ const AppContent = () => {
       <Toaster position="top-right" toastOptions={{ className: 'z-[9999]', duration: 4000 }} />
       {pageLoading && !hideChrome && <Loader />}
       {!hideChrome && <Navbar />}
+      {!hideChrome && <MaintenanceBanner />}
       {!hideChrome && <CustomerChatWidget />}
 
       {/* ... rest of the code ... */}

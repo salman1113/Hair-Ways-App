@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Loader2, ArrowRight, ArrowLeft, Mail, Lock } from 'lucide-react';
+import { Loader2, ArrowRight, ArrowLeft, Mail, Lock, AlertTriangle } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import api, { googleLogin } from '../services/api';
 
@@ -113,6 +113,25 @@ const LoginPage = () => {
         {/* Right Side - Form */}
         <div className="w-full md:w-1/2 p-6 md:p-16 flex flex-col justify-center">
           <div className="max-w-md mx-auto w-full">
+
+            {/* 🚧 Maintenance Sticker */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: '#fff7ed',
+              border: '1.5px solid #fb923c',
+              borderRadius: '10px',
+              padding: '8px 10px',
+              marginBottom: '12px',
+              boxShadow: '0 1px 6px rgba(251,146,60,0.12)',
+            }}>
+              <AlertTriangle size={15} color="#ea580c" style={{ flexShrink: 0 }} />
+              <p style={{ margin: 0, fontSize: '11.5px', fontWeight: 600, color: '#9a3412', lineHeight: 1.4 }}>
+                🚧 <strong>Maintenance:</strong> We're experiencing a technical issue. Login may be unavailable.
+              </p>
+            </div>
+
             <h2 className="text-3xl font-bold text-[#1A1A1A] mb-2">Sign In</h2>
             <p className="text-gray-500 mb-8">Enter your details to continue</p>
 
